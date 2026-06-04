@@ -17,23 +17,65 @@ export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  function signup(email, password) {
-    return createUserWithEmailAndPassword(auth, email, password);
+  async function signup(email, password) {
+    try {
+      return await createUserWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      console.warn("Firebase Auth signup failed, falling back to Local Mock Auth:", err.message);
+      const mockUser = { uid: "mock_user_123", email };
+      setCurrentUser(mockUser);
+      localStorage.setItem("mock_current_user", JSON.stringify(mockUser));
+      return { user: mockUser };
+    }
   }
 
-  function login(email, password) {
-    return signInWithEmailAndPassword(auth, email, password);
+  async function login(email, password) {
+    try {
+      return await signInWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      console.warn("Firebase Auth login failed, falling back to Local Mock Auth:", err.message);
+      const mockUser = { uid: "mock_user_123", email };
+      setCurrentUser(mockUser);
+      localStorage.setItem("mock_current_user", JSON.stringify(mockUser));
+      return { user: mockUser };
+    }
   }
 
-  function logout() {
-    return signOut(auth);
+  async function logout() {
+    try {
+      await signOut(auth);
+    } catch (e) {
+      console.warn("Firebase Auth signout failed:", e.message);
+    }
+    setCurrentUser(null);
+    localStorage.removeItem("mock_current_user");
   }
 
   useEffect(() => {
+    // Listen for Auth changes in Firebase
     const unsubscribe = onAuthStateChanged(auth, user => {
-      setCurrentUser(user);
+      if (user) {
+        setCurrentUser(user);
+        setLoading(false);
+      } else {
+        // Fallback to local storage session if Firebase is not signed in
+        const localUser = localStorage.getItem("mock_current_user");
+        if (localUser) {
+          setCurrentUser(JSON.parse(localUser));
+        } else {
+          setCurrentUser(null);
+        }
+        setLoading(false);
+      }
+    }, (err) => {
+      console.warn("onAuthStateChanged error, attempting LocalStorage session fallback:", err.message);
+      const localUser = localStorage.getItem("mock_current_user");
+      if (localUser) {
+        setCurrentUser(JSON.parse(localUser));
+      }
       setLoading(false);
     });
+
     return unsubscribe;
   }, []);
 

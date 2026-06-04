@@ -1,193 +1,160 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-
-const features = [
-  { icon: "💬", titleBn: "AI স্বাস্থ্য সহায়তা", titleEn: "AI Health Assistant", desc: "লক্ষণ বলুন, AI পরামর্শ দেবে বাংলায়" },
-  { icon: "🆘", titleBn: "জরুরি SOS", titleEn: "Emergency SOS", desc: "এক ট্যাপে সাহায্য, location শেয়ার" },
-  { icon: "🌊", titleBn: "দুর্যোগ সতর্কতা", titleEn: "Disaster Alerts", desc: "বন্যা, ঘূর্ণিঝড়ের real-time আপডেট" },
-  { icon: "🏥", titleBn: "নিকটস্থ হাসপাতাল", titleEn: "Nearby Hospitals", desc: "কাছের হাসপাতাল ও আশ্রয়কেন্দ্র খুঁজুন" },
-  { icon: "🎙️", titleBn: "ভয়েস সহায়তা", titleEn: "Voice Support", desc: "বলুন, AI শুনবে — অক্ষরজ্ঞান লাগবে না" },
-  { icon: "💊", titleBn: "ওষুধ রিমাইন্ডার", titleEn: "Medicine Reminder", desc: "প্রেসক্রিপশন স্ক্যান, সময়মতো reminder" },
-];
+import { useAuth } from "../contexts/AuthContext";
+import { db } from "../firebase/config";
+import { doc, getDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
 
 export default function Home() {
+  const { currentUser } = useAuth();
+  const [profile, setProfile] = useState(null);
+  const [sosStatus, setSosStatus] = useState("");
+  const [sendingSos, setSendingSos] = useState(false);
+
+  useEffect(() => {
+    async function fetchProfile() {
+      if (currentUser) {
+        let userProfile = null;
+        try {
+          const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+          if (userDoc.exists()) {
+            userProfile = userDoc.data();
+          }
+        } catch (error) {
+          console.warn("Firestore profile fetch failed, using local fallback:", error.message);
+        }
+
+        if (!userProfile) {
+          const localProf = localStorage.getItem("mock_user_profile");
+          if (localProf) {
+            userProfile = JSON.parse(localProf);
+          } else {
+            userProfile = { name: "রাহেলা বেগম" };
+          }
+        }
+        setProfile(userProfile);
+      }
+    }
+    fetchProfile();
+  }, [currentUser]);
+
+  function handleSosClick() {
+    if (!("geolocation" in navigator)) {
+      setSosStatus("জিপিএস সমর্থন করে না!");
+      return;
+    }
+
+    setSendingSos(true);
+    setSosStatus("আপনার অবস্থান খোঁজা হচ্ছে...");
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        const sosPayload = {
+          userId: currentUser?.uid || "guest",
+          userName: profile?.name || "Anonymous Guest",
+          lat: latitude,
+          lng: longitude
+        };
+
+        try {
+          await addDoc(collection(db, "sos"), {
+            ...sosPayload,
+            createdAt: serverTimestamp()
+          });
+          setSosStatus("SOS সফলভাবে পাঠানো হয়েছে! সাহায্য আসছে।");
+        } catch (err) {
+          console.warn("Firestore SOS write failed, saving locally:", err.message);
+          let list = JSON.parse(localStorage.getItem("mock_sos_signals") || "[]");
+          list.push({ ...sosPayload, createdAt: new Date().toISOString() });
+          localStorage.setItem("mock_sos_signals", JSON.stringify(list));
+          setSosStatus("SOS সফলভাবে পাঠানো হয়েছে! (লোকাল ডেমো মোড)");
+        }
+
+        setTimeout(() => {
+          setSosStatus("");
+          setSendingSos(false);
+        }, 4000);
+      },
+      (error) => {
+        console.error("GPS error:", error);
+        setSosStatus("অবস্থান পাওয়া যায়নি। জিপিএস চালু করুন।");
+        setSendingSos(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
+
   return (
-    <div>
-      {/* Hero */}
-      <div style={styles.hero}>
-        <div style={styles.heroContent}>
-          <div className="bengali" style={styles.heroTag}>🇧🇩 বাংলাদেশের জন্য তৈরি</div>
-          <h1 className="bengali" style={styles.heroTitle}>
-            সুরক্ষা AI
-          </h1>
-          <p style={styles.heroSub}>
-            Your Bengali Health & Emergency Companion
-          </p>
-          <p className="bengali" style={styles.heroDesc}>
-            স্বাস্থ্য পরামর্শ, জরুরি সাহায্য, দুর্যোগ সতর্কতা —<br />
-            সব এক জায়গায়, বাংলায়
-          </p>
-          <div style={styles.heroBtns}>
-            <Link to="/dashboard" style={styles.btnPrimary}>
-              শুরু করুন →
-            </Link>
-            <Link to="/emergency" style={styles.btnEmergency}>
-              🆘 জরুরি সাহায্য
-            </Link>
-          </div>
-        </div>
-        <div style={styles.heroImage}>🏥</div>
+    <div className="scroll-area">
+      {/* Header (Home green style) */}
+      <div className="hdr green">
+        <div className="hdr-greeting">আস্সালামু আলাইকুম 👋</div>
+        <div className="hdr-name">{profile?.name || "অতিথি ব্যবহারকারী"}</div>
+        <div className="hdr-tagline">আপনার স্বাস্থ্য সহায়ক · Shurokkha AI</div>
       </div>
 
-      {/* Features grid */}
-      <h2 className="bengali" style={styles.sectionTitle}>কী কী পাবেন</h2>
-      <div style={styles.grid}>
-        {features.map((f, i) => (
-          <div key={i} style={styles.featureCard}>
-            <div style={styles.featureIcon}>{f.icon}</div>
-            <div className="bengali" style={styles.featureTitleBn}>{f.titleBn}</div>
-            <div style={styles.featureTitleEn}>{f.titleEn}</div>
-            <p className="bengali" style={styles.featureDesc}>{f.desc}</p>
+      {/* Alert Banner */}
+      <Link to="/alerts" className="alert-bar">
+        <div className="alert-bar-icon">⚠️</div>
+        <div>
+          <div className="alert-bar-title">বন্যার সতর্কতা — সিলেট</div>
+          <div className="alert-bar-sub">আজকের লাইভ আপডেট ও আশ্রয়কেন্দ্র দেখুন</div>
+        </div>
+        <div className="alert-bar-arrow">›</div>
+      </Link>
+
+      {/* SOS Button Area */}
+      <div className="sos-wrap">
+        <div className="sos-hint">জরুরি সাহায্যের জন্য</div>
+        <button 
+          className="sos-btn" 
+          onClick={handleSosClick} 
+          disabled={sendingSos}
+          style={{ border: sendingSos ? "4px solid var(--amber)" : "" }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M12 8v4M12 16h.01" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <span>SOS</span>
+        </button>
+        <div className="sos-press">ক্লিক করুন</div>
+        {sosStatus && (
+          <div className="bengali" style={{
+            fontSize: "10px", 
+            marginTop: "8px", 
+            color: sosStatus.includes("সফল") ? "var(--green)" : "var(--red-dark)",
+            fontWeight: "600",
+            padding: "0 20px"
+          }}>
+            {sosStatus}
           </div>
-        ))}
+        )}
       </div>
 
-      {/* CTA Banner */}
-      <div style={styles.ctaBanner}>
-        <div className="bengali" style={styles.ctaText}>
-          যেকোনো পরিস্থিতিতে, যেকোনো সময় — সুরক্ষা AI আপনার পাশে আছে
-        </div>
-        <Link to="/emergency" style={styles.ctaBtn}>
-          🆘 এখনই সাহায্য নিন
+      {/* 2x2 Grid of Actions */}
+      <div className="mini-grid">
+        <Link to="/chat" className="mini-card">
+          <div className="mini-icon">🩺</div>
+          <div className="mini-label">AI ডাক্তার</div>
+          <div className="mini-sub">লক্ষণ পরীক্ষা করুন</div>
+        </Link>
+        <Link to="/emergency" className="mini-card">
+          <div className="mini-icon">🗺️</div>
+          <div className="mini-label">হাসপাতাল খুঁজুন</div>
+          <div className="mini-sub">কাছের জরুরি সেবা</div>
+        </Link>
+        <Link to="/profile" className="mini-card">
+          <div className="mini-icon">🔔</div>
+          <div className="mini-label">ওষুধ রিমাইন্ডার</div>
+          <div className="mini-sub">রিমাইন্ডার ট্র্যাক করুন</div>
+        </Link>
+        <Link to="/alerts" className="mini-card">
+          <div className="mini-icon">🌩️</div>
+          <div className="mini-label">দুর্যোগ সতর্কতা</div>
+          <div className="mini-sub">লাইভ আপডেট</div>
         </Link>
       </div>
     </div>
   );
 }
-
-const styles = {
-  hero: {
-    background: "linear-gradient(135deg, #1B6B4A 0%, #0F4A32 100%)",
-    borderRadius: 20,
-    padding: "48px 40px",
-    color: "white",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 40,
-    gap: 24,
-  },
-  heroContent: { flex: 1 },
-  heroTag: {
-    fontSize: 13,
-    background: "rgba(255,255,255,0.15)",
-    display: "inline-block",
-    padding: "4px 12px",
-    borderRadius: 20,
-    marginBottom: 16,
-    fontWeight: 500,
-  },
-  heroTitle: {
-    fontSize: 52,
-    fontWeight: 700,
-    lineHeight: 1.1,
-    marginBottom: 8,
-  },
-  heroSub: {
-    fontSize: 18,
-    opacity: 0.85,
-    marginBottom: 12,
-  },
-  heroDesc: {
-    fontSize: 15,
-    opacity: 0.75,
-    lineHeight: 1.7,
-    marginBottom: 28,
-  },
-  heroBtns: { display: "flex", gap: 12, flexWrap: "wrap" },
-  btnPrimary: {
-    background: "white",
-    color: "#1B6B4A",
-    textDecoration: "none",
-    padding: "12px 24px",
-    borderRadius: 10,
-    fontWeight: 700,
-    fontSize: 15,
-  },
-  btnEmergency: {
-    background: "#D93025",
-    color: "white",
-    textDecoration: "none",
-    padding: "12px 24px",
-    borderRadius: 10,
-    fontWeight: 700,
-    fontSize: 15,
-  },
-  heroImage: {
-    fontSize: 100,
-    opacity: 0.3,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: 700,
-    color: "#0F4A32",
-    marginBottom: 20,
-  },
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-    gap: 16,
-    marginBottom: 40,
-  },
-  featureCard: {
-    background: "white",
-    borderRadius: 16,
-    padding: 24,
-    border: "1px solid #D4E8D4",
-    boxShadow: "0 2px 8px rgba(27,107,74,0.08)",
-    transition: "transform 0.2s, box-shadow 0.2s",
-  },
-  featureIcon: { fontSize: 36, marginBottom: 12 },
-  featureTitleBn: {
-    fontSize: 17,
-    fontWeight: 700,
-    color: "#0F4A32",
-    marginBottom: 2,
-  },
-  featureTitleEn: {
-    fontSize: 12,
-    color: "#7A9A7A",
-    marginBottom: 8,
-  },
-  featureDesc: {
-    fontSize: 14,
-    color: "#4A6A4A",
-    lineHeight: 1.6,
-  },
-  ctaBanner: {
-    background: "#D93025",
-    borderRadius: 16,
-    padding: "28px 32px",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 16,
-    flexWrap: "wrap",
-  },
-  ctaText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: 600,
-    flex: 1,
-  },
-  ctaBtn: {
-    background: "white",
-    color: "#D93025",
-    textDecoration: "none",
-    padding: "12px 24px",
-    borderRadius: 10,
-    fontWeight: 700,
-    fontSize: 15,
-    whiteSpace: "nowrap",
-  },
-};

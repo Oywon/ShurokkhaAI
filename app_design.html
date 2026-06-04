@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shurokkha AI — All 8 Screens</title>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ── Reset & Base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green:        #0F6E56;
+    --green-light:  #E1F5EE;
+    --green-mid:    #5DCAA5;
+    --green-dark:   #085041;
+    --green-deep:   #04342C;
+    --red:          #D85A30;
+    --red-light:    #FAECE7;
+    --red-border:   #F0997B;
+    --red-dark:     #993C1D;
+    --blue:         #185FA5;
+    --blue-light:   #E6F1FB;
+    --blue-mid:     #85B7EB;
+    --purple:       #3C3489;
+    --purple-light: #EEEDFE;
+    --amber:        #854F0B;
+    --amber-light:  #FAEEDA;
+    --amber-border: #EF9F27;
+    --amber-dark:   #633806;
+    --bg:           #FFFFFF;
+    --bg2:          #F5F6F4;
+    --bg3:          #ECEEED;
+    --txt:          #1A1A1A;
+    --txt2:         #6B6B6B;
+    --txt3:         #AAAAAA;
+    --border:       rgba(0,0,0,0.12);
+    --border2:      rgba(0,0,0,0.22);
+    --font-bn:      'Hind Siliguri', sans-serif;
+    --font-en:      'Inter', sans-serif;
+    --r-pill:       20px;
+    --r-lg:         12px;
+    --r-md:         10px;
+    --r-sm:         8px;
+    --r-xs:         6px;
+  }
+
+  body {
+    background: #E8EDE9;
+    font-family: var(--font-bn);
+    min-height: 100vh;
+    padding: 40px 24px 60px;
+  }
+
+  /* ── Page header ── */
+  .page-title {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .page-title h1 {
+    font-family: var(--font-bn);
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--green);
+    letter-spacing: -0.3px;
+  }
+  .page-title p {
+    font-family: var(--font-en);
+    font-size: 13px;
+    color: var(--txt2);
+    margin-top: 6px;
+  }
+
+  /* ── Grid of phones ── */
+  .grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 32px;
+    justify-content: center;
+    align-items: flex-start;
+  }
+
+  /* ── Phone wrapper ── */
+  .phone-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .screen-label {
+    font-family: var(--font-en);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--green);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    background: var(--green-light);
+    border: 1px solid var(--green-mid);
+    border-radius: 20px;
+    padding: 3px 12px;
+  }
+
+  /* ── Phone device ── */
+  .phone {
+    width: 260px;
+    border-radius: 40px;
+    border: 2.5px solid rgba(0,0,0,0.18);
+    background: var(--bg);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08);
+  }
+
+  /* Notch */
+  .notch {
+    height: 30px;
+    background: #1A1A1A;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .notch-pill {
+    width: 72px; height: 7px;
+    border-radius: 4px;
+    background: #333;
+  }
+
+  /* Status bar */
+  .sbar {
+    padding: 5px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-en);
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--txt2);
+    background: var(--bg);
+  }
+  .sbar-icons { display: flex; gap: 4px; align-items: center; }
+
+  /* Screen title strip */
+  .strip {
+    font-family: var(--font-en);
+    font-size: 9.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--txt2);
+    text-align: center;
+    padding: 5px 0;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ── Shared: colored headers ── */
+  .hdr {
+    padding: 14px 16px 16px;
+    color: #fff;
+  }
+  .hdr.green  { background: var(--green); }
+  .hdr.red    { background: var(--red-dark); }
+  .hdr.blue   { background: var(--blue); }
+  .hdr.purple { background: var(--purple); }
+
+  .hdr-icon {
+    width: 50px; height: 50px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    margin: 0 auto 10px;
+  }
+  .hdr-row { display: flex; align-items: center; gap: 10px; }
+  .hdr-back { font-size: 20px; opacity: 0.8; cursor: pointer; }
+  .hdr-title { font-size: 15px; font-weight: 600; }
+  .hdr-sub   { font-size: 10px; opacity: 0.72; margin-top: 2px; }
+  .hdr-greeting { font-size: 10px; opacity: 0.78; }
+  .hdr-name  { font-size: 16px; font-weight: 600; margin-top: 2px; }
+  .hdr-tagline { font-size: 9.5px; opacity: 0.65; margin-top: 2px; }
+  .hdr-center { text-align: center; }
+
+  /* ── Nav bar ── */
+  .nav {
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 0 10px;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .nav-tab {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 3px;
+    font-size: 8.5px;
+    color: var(--txt3);
+    cursor: pointer;
+    min-width: 44px;
+  }
+  .nav-tab.on { color: var(--green); }
+  .nav-tab svg { width: 18px; height: 18px; stroke-width: 1.8; }
+
+  /* ── Scroller ── */
+  .scroll { flex: 1; overflow-y: auto; overflow-x: hidden; }
+  .scroll::-webkit-scrollbar { display: none; }
+
+  /* ── Alert banner ── */
+  .alert-bar {
+    margin: 10px 12px 0;
+    background: var(--amber-light);
+    border: 1px solid var(--amber-border);
+    border-radius: var(--r-sm);
+    padding: 8px 10px;
+    display: flex; align-items: flex-start; gap: 8px;
+  }
+  .alert-bar-icon { font-size: 16px; margin-top: 1px; }
+  .alert-bar-title { font-size: 10px; font-weight: 600; color: var(--amber-dark); }
+  .alert-bar-sub   { font-size: 9px;  color: var(--amber); margin-top: 2px; }
+  .alert-bar-arrow { font-size: 13px; color: var(--amber); margin-left: auto; margin-top: 2px; }
+
+  /* ── SOS ── */
+  .sos-wrap { text-align: center; padding: 14px 0 8px; }
+  .sos-hint { font-size: 9.5px; color: var(--txt2); margin-bottom: 8px; }
+  .sos-btn {
+    width: 82px; height: 82px;
+    border-radius: 50%;
+    background: var(--red);
+    border: 3.5px solid var(--red-border);
+    display: inline-flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: #fff;
+    cursor: pointer;
+    margin-bottom: 4px;
+  }
+  .sos-btn svg { width: 28px; height: 28px; stroke-width: 1.8; }
+  .sos-btn span { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; margin-top: 2px; }
+  .sos-press { font-size: 9px; color: var(--txt3); }
+
+  /* ── 2x2 mini grid ── */
+  .mini-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+    padding: 10px 12px 12px;
+  }
+  .mini-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 10px;
+    display: flex; flex-direction: column; gap: 5px;
+  }
+  .mini-icon { font-size: 20px; }
+  .mini-label { font-size: 10px; font-weight: 600; color: var(--txt); }
+  .mini-sub   { font-size: 9px; color: var(--txt2); }
+
+  /* ── Chat screen ── */
+  .chat-hdr {
+    background: var(--green);
+    padding: 10px 14px;
+    display: flex; align-items: center; gap: 10px;
+    color: #fff;
+  }
+  .chat-avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: rgba(255,255,255,0.22);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+  }
+  .chat-name { font-size: 13px; font-weight: 600; }
+  .chat-online { font-size: 9px; opacity: 0.78; margin-top: 1px; }
+  .chat-mic { margin-left: auto; font-size: 20px; opacity: 0.88; }
+
+  .chat-body {
+    flex: 1; padding: 12px 12px 8px;
+    display: flex; flex-direction: column; gap: 10px;
+    background: var(--bg2);
+    overflow: hidden;
+  }
+  .bubble-sender { font-size: 8.5px; color: var(--txt2); margin-bottom: 3px; }
+  .bubble {
+    max-width: 88%; padding: 8px 10px;
+    font-size: 10px; line-height: 1.55;
+  }
+  .bubble.ai {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md) var(--r-md) var(--r-md) 3px;
+    color: var(--txt);
+    align-self: flex-start;
+  }
+  .bubble.user {
+    background: var(--green);
+    color: #fff;
+    border-radius: var(--r-md) var(--r-md) 3px var(--r-md);
+    align-self: flex-end;
+  }
+  .bubble.warn {
+    border-left: 2.5px solid var(--red);
+    border-radius: 3px var(--r-md) var(--r-md) 3px;
+  }
+  .chips-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .chip {
+    background: var(--green-light);
+    border: 1px solid var(--green-mid);
+    color: var(--green-dark);
+    border-radius: 20px;
+    padding: 3px 9px;
+    font-size: 9px; font-weight: 600;
+  }
+  .chat-input-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .chat-box {
+    flex: 1; background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 7px 12px;
+    font-size: 9.5px; color: var(--txt3);
+    font-family: var(--font-bn);
+  }
+  .mic-btn {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--green);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 16px; cursor: pointer;
+    flex-shrink: 0;
+  }
+  .mic-btn svg { width: 16px; height: 16px; stroke-width: 2; }
+
+  /* ── Emergency screen ── */
+  .emg-sos-card {
+    margin: 12px;
+    background: var(--red);
+    border: 1.5px solid var(--red-border);
+    border-radius: var(--r-lg);
+    padding: 14px;
+    color: #fff;
+    text-align: center;
+  }
+  .emg-sos-title { font-size: 14px; font-weight: 600; }
+  .emg-sos-sub   { font-size: 9.5px; opacity: 0.8; margin-top: 3px; }
+  .emg-sos-cta {
+    display: inline-block;
+    margin-top: 10px;
+    background: #fff;
+    color: var(--red-dark);
+    border-radius: 20px;
+    padding: 5px 22px;
+    font-size: 10px; font-weight: 700;
+  }
+  .offline-badge {
+    margin: 0 12px 10px;
+    background: #EAF3DE;
+    border: 1px solid #97C459;
+    border-radius: var(--r-sm);
+    padding: 7px 10px;
+    display: flex; align-items: center; gap: 7px;
+    font-size: 9.5px; font-weight: 600; color: #3B6D11;
+  }
+  .offline-badge svg { width: 14px; height: 14px; stroke-width: 2; flex-shrink: 0; }
+  .emg-list { padding: 0 12px; display: flex; flex-direction: column; gap: 7px; }
+  .emg-item {
+    display: flex; align-items: center; gap: 11px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 9px 11px;
+  }
+  .emg-icon {
+    width: 36px; height: 36px; border-radius: var(--r-sm);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+  .emg-icon.hosp   { background: var(--blue-light);  }
+  .emg-icon.shelt  { background: #EAF3DE; }
+  .emg-icon.first  { background: var(--amber-light); }
+  .emg-label { font-size: 10px; font-weight: 600; color: var(--txt); }
+  .emg-sub   { font-size: 9px; color: var(--txt2); margin-top: 2px; }
+  .emg-dist  { font-size: 9px; font-weight: 600; color: var(--blue); margin-left: auto; }
+  .emg-arr   { font-size: 14px; color: var(--txt3); margin-left: auto; }
+
+  /* ── Disaster Alerts ── */
+  .map-mock {
+    margin: 10px 12px;
+    height: 90px;
+    background: #E1F5EE;
+    border-radius: var(--r-md);
+    border: 1px solid var(--green-mid);
+    display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+  }
+  .map-lines {
+    position: absolute; inset: 0;
+    display: grid; grid-template-columns: repeat(6,1fr); grid-template-rows: repeat(4,1fr);
+    opacity: 0.18;
+  }
+  .map-cell { border: 0.5px solid var(--green); }
+  .map-pin { font-size: 26px; position: relative; z-index: 1; }
+  .map-loc-label {
+    position: absolute; bottom: 6px; right: 10px;
+    font-size: 8.5px; font-weight: 600; color: var(--green);
+    font-family: var(--font-en);
+  }
+  .alerts-list { padding: 0 12px; display: flex; flex-direction: column; gap: 7px; }
+  .alert-card {
+    border-radius: var(--r-md);
+    padding: 9px 11px;
+    border-top: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .alert-card.flood   { background: var(--blue-light);   border-left: 3px solid var(--blue); }
+  .alert-card.cyclone { background: var(--purple-light);  border-left: 3px solid var(--purple); }
+  .alert-card.heat    { background: var(--amber-light);   border-left: 3px solid var(--amber); }
+  .alert-top { display: flex; align-items: center; justify-content: space-between; }
+  .alert-title { font-size: 10px; font-weight: 600; color: var(--txt); }
+  .badge {
+    font-size: 8px; font-weight: 700;
+    border-radius: 20px; padding: 2px 8px;
+    font-family: var(--font-en);
+  }
+  .badge.high { background: #F7C1C1; color: #A32D2D; }
+  .badge.med  { background: #FAC775; color: #633806; }
+  .badge.low  { background: var(--blue-mid); color: #0C447C; }
+  .alert-desc { font-size: 9px; color: var(--txt2); margin-top: 4px; line-height: 1.5; }
+  .alert-time { font-size: 8.5px; color: var(--txt3); margin-top: 3px; font-family: var(--font-en); }
+
+  /* ── Profile screen ── */
+  .profile-hdr {
+    background: var(--blue);
+    padding: 14px 16px 22px;
+    text-align: center;
+    color: #fff;
+  }
+  .profile-avatar {
+    width: 54px; height: 54px; border-radius: 50%;
+    background: rgba(255,255,255,0.22);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; margin: 0 auto 8px;
+  }
+  .profile-name { font-size: 15px; font-weight: 600; }
+  .profile-age  { font-size: 10px; opacity: 0.75; margin-top: 3px; }
+  .metrics-row {
+    display: grid; grid-template-columns: repeat(3,1fr);
+    gap: 7px;
+    margin: -12px 12px 10px;
+  }
+  .metric-pill {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 9px 7px;
+    text-align: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  }
+  .metric-val  { font-size: 13px; font-weight: 700; color: var(--txt); font-family: var(--font-en); }
+  .metric-val.warn { color: var(--red); }
+  .metric-lbl  { font-size: 8px; color: var(--txt2); margin-top: 2px; }
+  .section-head {
+    font-size: 9.5px; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--green);
+    padding: 8px 12px 4px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+  }
+  .reminder-list { padding: 0 12px; }
+  .reminder-row {
+    display: flex; align-items: center; gap: 9px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .rem-icon {
+    width: 32px; height: 32px; border-radius: var(--r-sm);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .rem-icon.purple { background: var(--purple-light); }
+  .rem-icon.blue   { background: var(--blue-light); }
+  .rem-icon.red    { background: var(--red-light); }
+  .rem-label { font-size: 10px; font-weight: 600; color: var(--txt); }
+  .rem-time  { font-size: 9px; color: var(--txt2); margin-top: 1px; }
+  .rem-check {
+    margin-left: auto; width: 20px; height: 20px;
+    border-radius: 50%; border: 1.5px solid var(--border2);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .rem-check.done { border-color: var(--green); color: var(--green); font-size: 12px; }
+  .quick-tiles {
+    display: grid; grid-template-columns: repeat(3,1fr);
+    gap: 7px; padding: 8px 12px 12px;
+  }
+  .qtile {
+    border-radius: var(--r-sm);
+    padding: 9px 7px;
+    text-align: center;
+    font-size: 9px; font-weight: 600;
+    cursor: pointer;
+  }
+  .qtile.g { background: var(--green-light); color: var(--green-dark); }
+  .qtile.p { background: var(--purple-light); color: #534AB7; }
+  .qtile.a { background: var(--amber-light); color: var(--amber); }
+  .qtile-icon { font-size: 18px; display: block; margin-bottom: 4px; }
+
+  /* ── Login screen ── */
+  .login-brand {
+    background: var(--green);
+    padding: 22px 18px 18px;
+    text-align: center;
+    color: #fff;
+  }
+  .login-logo {
+    width: 52px; height: 52px; border-radius: 16px;
+    background: rgba(255,255,255,0.2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; margin: 0 auto 10px;
+  }
+  .login-name { font-size: 18px; font-weight: 700; letter-spacing: -0.2px; }
+  .login-sub  { font-size: 10px; opacity: 0.72; margin-top: 3px; }
+  .form-body  { padding: 14px 14px 10px; display: flex; flex-direction: column; gap: 11px; }
+  .flabel {
+    font-size: 9.5px; font-weight: 600;
+    color: var(--txt2); margin-bottom: 4px; display: block;
+  }
+  .finput-wrap { position: relative; }
+  .finput {
+    width: 100%;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    padding: 9px 10px 9px 34px;
+    font-size: 10.5px; color: var(--txt3);
+    font-family: var(--font-bn);
+  }
+  .finput.no-icon { padding-left: 12px; }
+  .fi-left {
+    position: absolute; left: 10px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 15px; color: var(--txt3);
+  }
+  .fi-left svg { width: 15px; height: 15px; stroke-width: 1.8; }
+  .fi-right {
+    position: absolute; right: 10px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 15px; color: var(--txt3);
+  }
+  .fi-right svg { width: 15px; height: 15px; stroke-width: 1.8; }
+  .forgot { text-align: right; font-size: 9.5px; color: var(--green); cursor: pointer; margin-top: -6px; font-weight: 600; }
+  .btn-primary {
+    width: 100%; background: var(--green);
+    color: #fff; border: none; border-radius: var(--r-sm);
+    padding: 10px; font-size: 11.5px; font-weight: 700;
+    cursor: pointer; font-family: var(--font-bn);
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+  }
+  .btn-primary svg { width: 14px; height: 14px; stroke-width: 2.2; }
+  .divider-row {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 9.5px; color: var(--txt3);
+  }
+  .div-line { flex: 1; height: 1px; background: var(--border); }
+  .social-row { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .social-btn {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    padding: 8px;
+    display: flex; align-items: center; justify-content: center;
+    gap: 6px; font-size: 10px; color: var(--txt2); cursor: pointer;
+    font-family: var(--font-en);
+  }
+  .link-row {
+    text-align: center; font-size: 9.5px; color: var(--txt2); padding: 2px 0;
+  }
+  .link-text { color: var(--green); font-weight: 700; cursor: pointer; }
+  .trust-badge {
+    background: var(--green-light);
+    border: 1px solid var(--green-mid);
+    border-radius: var(--r-sm);
+    padding: 8px 10px;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 9.5px; font-weight: 600; color: var(--green-dark);
+  }
+  .trust-badge svg { width: 16px; height: 16px; stroke-width: 1.8; flex-shrink: 0; }
+
+  /* ── Registration ── */
+  .reg-brand {
+    background: var(--green);
+    padding: 12px 16px;
+    text-align: center;
+    color: #fff;
+  }
+  .reg-brand-title { font-size: 14px; font-weight: 700; }
+  .reg-brand-sub   { font-size: 9.5px; opacity: 0.72; margin-top: 2px; }
+  .step-dots {
+    display: flex; align-items: center; justify-content: center;
+    gap: 5px; padding: 8px 0 3px;
+    background: var(--bg);
+  }
+  .sdot {
+    height: 4.5px; border-radius: 3px;
+  }
+  .sdot.done   { width: 22px; background: var(--green-mid); }
+  .sdot.active { width: 22px; background: var(--green); }
+  .sdot.idle   { width: 22px; background: var(--border2); }
+  .frow-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .bg-chips-wrap { display: flex; flex-wrap: wrap; gap: 5px; }
+  .bg-chip {
+    border: 1px solid var(--border2);
+    border-radius: 20px; padding: 4px 10px;
+    font-size: 9.5px; color: var(--txt2); cursor: pointer;
+    font-family: var(--font-en); font-weight: 600;
+    background: var(--bg2);
+  }
+  .bg-chip.sel {
+    background: var(--green-light);
+    border-color: var(--green-mid);
+    color: var(--green-dark);
+  }
+  .fselect {
+    width: 100%;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    padding: 9px 30px 9px 34px;
+    font-size: 10.5px; color: var(--txt3);
+    font-family: var(--font-bn);
+    appearance: none;
+  }
+  .consent-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    padding: 8px 10px;
+    display: flex; align-items: flex-start; gap: 9px;
+  }
+  .checkbox-done {
+    width: 16px; height: 16px; border-radius: 4px;
+    border: 1.5px solid var(--green);
+    background: var(--green-light);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 1px; color: var(--green); font-size: 11px;
+  }
+  .consent-text { font-size: 9px; color: var(--txt2); line-height: 1.55; }
+  .consent-link { color: var(--green); font-weight: 600; }
+
+  /* ── Data Entry screen ── */
+  .vital-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 7px; padding: 9px 12px 10px;
+  }
+  .vital-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 9px 11px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .vital-lbl { font-size: 9px; color: var(--txt2); display: flex; align-items: center; gap: 4px; }
+  .vital-lbl svg { width: 12px; height: 12px; stroke-width: 2; color: var(--green); flex-shrink: 0; }
+  .vital-inp {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: var(--r-xs);
+    padding: 5px 8px;
+    font-size: 13px; font-weight: 700; color: var(--txt);
+    font-family: var(--font-en); margin-top: 2px;
+  }
+  .vital-unit { font-size: 8.5px; color: var(--txt3); font-family: var(--font-en); }
+  .mood-chips { padding: 0 12px 10px; display: flex; flex-wrap: wrap; gap: 5px; }
+  .mood-chip {
+    border-radius: 20px; padding: 4px 10px;
+    font-size: 9.5px; cursor: pointer; border: 1px solid;
+  }
+  .mood-chip.sel { background: var(--green-light); border-color: var(--green-mid); color: var(--green-dark); font-weight: 600; }
+  .mood-chip.def { background: var(--bg2); border-color: var(--border); color: var(--txt2); }
+  .med-list { padding: 0 12px; }
+  .med-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 0; border-bottom: 1px solid var(--border);
+  }
+  .med-check-done {
+    width: 18px; height: 18px; border-radius: 4px;
+    background: var(--green-light); border: 1.5px solid var(--green);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--green); font-size: 12px; flex-shrink: 0;
+  }
+  .med-check-empty {
+    width: 18px; height: 18px; border-radius: 4px;
+    background: var(--bg2); border: 1.5px solid var(--border2);
+    flex-shrink: 0;
+  }
+  .med-label { font-size: 10px; font-weight: 600; color: var(--txt); }
+  .med-status-done  { font-size: 9px; font-weight: 700; color: var(--green); margin-left: auto; }
+  .med-status-empty { font-size: 9px; color: var(--txt3); margin-left: auto; }
+  .water-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 12px;
+  }
+  .water-label { font-size: 10px; font-weight: 600; color: var(--txt); }
+  .water-ctrl { display: flex; align-items: center; gap: 10px; }
+  .w-btn {
+    width: 28px; height: 28px; border-radius: var(--r-xs);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; cursor: pointer; font-weight: 500;
+  }
+  .w-btn.minus { border: 1px solid var(--border2); color: var(--txt2); background: var(--bg2); }
+  .w-btn.plus  { border: 1px solid var(--green); color: var(--green); background: var(--green-light); }
+  .w-count { font-size: 16px; font-weight: 700; color: var(--txt); font-family: var(--font-en); min-width: 18px; text-align: center; }
+  .save-bar { padding: 10px 12px; border-top: 1px solid var(--border); background: var(--bg); }
+
+  /* ── Padding spacer ── */
+  .pb { padding-bottom: 8px; }
+
+  /* ── Print / Figma hint ── */
+  .figma-hint {
+    text-align: center;
+    margin-top: 44px;
+    font-family: var(--font-en);
+    font-size: 12px;
+    color: var(--txt2);
+    line-height: 1.7;
+  }
+  .figma-hint strong { color: var(--green); }
+
+  @media print {
+    body { background: #fff; padding: 20px; }
+    .grid { gap: 20px; }
+    .phone { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-title">
+  <h1>শুরক্ষা AI — সম্পূর্ণ UI কিট</h1>
+  <p>All 8 Screens · Shurokkha AI Bengali Health &amp; Emergency Companion · Figma-ready</p>
+</div>
+
+<div class="grid">
+
+<!-- ══════════════════════════════
+     SCREEN 1 — HOME
+══════════════════════════════ -->
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="notch"><div class="notch-pill"></div></div>
+    <div class="sbar">
+      <span>9:41</span>
+      <div class="sbar-icons">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="12" height="12"><path d="M1.2 8.4C4.4 5.2 8.9 3 12 3s7.6 2.2 10.8 5.4M4.8 11.7C7 9.5 9.4 8 12 8s5 1.5 7.2 3.7M8.4 15c1.1-1.1 2.3-1.8 3.6-1.8s2.5.7 3.6 1.8M12 19h.01" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="12" height="12"><rect x="2" y="7" width="18" height="11" rx="2" stroke-width="1.8"/><path d="M22 11v3" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+    </div>
+    <div class="strip">Screen 1 — Home</div>
+
+    <div class="hdr green">
+      <div class="hdr-greeting">আস্সালামু আলাইকুম 👋</div>
+      <div class="hdr-name">রাহেলা বেগম</div>
+      <div class="hdr-tagline">আপনার স্বাস্থ্য সহায়ক · Shurokkha AI</div>
+    </div>
+
+    <div class="scroll">
+      <div class="alert-bar">
+        <div class="alert-bar-icon">⚠️</div>
+        <div>
+          <div class="alert-bar-title">বন্যার সতর্কতা — সিলেট</div>
+          <div class="alert-bar-sub">আজকের আপডেট দেখুন</div>
+        </div>
+        <div class="alert-bar-arrow">›</div>
+      </div>
+
+      <div class="sos-wrap">
+        <div class="sos-hint">জরুরি সাহায্যের জন্য</div>
+        <div class="sos-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke-width="1.8"/><path d="M12 8v4M12 16h.01" stroke-width="2" stroke-linecap="round"/></svg>
+          <span>SOS</span>
+        </div>
+        <div class="sos-press">চেপে ধরুন</div>
+      </div>
+
+      <div class="mini-grid">
+        <div class="mini-card">
+          <div class="mini-icon">🩺</div>
+          <div class="mini-label">AI ডাক্তার</div>
+          <div class="mini-sub">লক্ষণ পরীক্ষা করুন</div>
+        </div>
+        <div class="mini-card">
+          <div class="mini-icon">🗺️</div>
+          <div class="mini-label">হাসপাতাল খুঁজুন</div>
+          <div class="mini-sub">কাছের সেবা</div>
+        </div>
+        <div class="mini-card">
+          <div class="mini-icon">🔔</div>
+          <div class="mini-label">ওষুধ রিমাইন্ডার</div>
+          <div class="mini-sub">৩টি বাকি আছে</div>
+        </div>
+        <div class="mini-card">
+          <div class="mini-icon">🌩️</div>
+          <div class="mini-label">দুর্যোগ সতর্কতা</div>
+          <div class="mini-sub">লাইভ আপডেট</div>
+        </div>
+      </div>
+      <div class="pb"></div>
+    </div>
+
+    <div class="nav">
+      <div class="nav-tab on">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke-width="1.8"/></svg>
+        <span>হোম</span>
+      </div>
+      <div class="nav-tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke-width="1.8"/></svg>
+        <span>AI চ্যাট</span>
+      </div>
+      <div class="nav-tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-width="1.8"/><path d="M12 8v4l3 3" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <span>জরুরি</span>
+      </div>
+      <div class="nav-tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke-width="1.8"/><circle cx="12" cy="7" r="4" stroke-width="1.8"/></svg>
+        <span>প্রোফাইল</span>
+      </div>
+    </div>
+  </div>
+  <div class="screen-label">Home</div>
+</div>
+
+<!-- ══════════════════════════════
+     SCREEN 2 — AI CHAT
+══════════════════════════════ -->
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="notch"><div class="notch-pill"></div></div>
+    <div class="sbar"><span>9:43</span><div class="sbar-icons"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="12" height="12"><path d="M1.2 8.4C4.4 5.2 8.9 3 12 3s7.6 2.2 10.8 5.4M4.8 11.7C7 9.5 9.4 8 12 8s5 1.5 7.2 3.7M8.4 15c1.1-1.1 2.3-1.8 3.6-1.8s2.5.7 3.6 1.8M12 19h.01" stroke-width="1.8" stroke-linecap="round"/></svg></div></div>
+    <div class="strip">Screen 2 — AI Health Chat</div>
+
+    <div class="chat-hdr">
+      <div class="chat-avatar">🩺</div>
+      <div>
+        <div class="chat-name">শুরক্ষা AI</div>
+        <div class="chat-online">● অনলাইন</div>
+      </div>
+      <div class="chat-mic">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="20" height="20"><path d="M12 2a3 3 0 013 3v7a3 3 0 01-6 0V5a3 3 0 013-3z" stroke-width="1.8"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </div>
+    </div>
+
+    <div class="chat-body">
+      <div>
+        <div class="bubble-sender">শুরক্ষা AI</div>
+        <div class="bubble ai">আস্সালামু আলাইকুম! আপনার কী সমস্যা হচ্ছে? আমি সাহায্য করতে এসেছি। 🌿</div>
+      </div>
+      <div style="align-self:flex-end">
+        <div class="bubble user">আমার মাথা ব্যথা এবং জ্বর আছে</div>
+      </div>
+      <div>
+        <div class="bubble-sender">শুরক্ষা AI</div>
+        <div class="bubble ai">বুঝলাম। নিচের লক্ষণগুলো কি আছে?
+          <div class="chips-row">
+            <div class="chip">কাঁপুনি</div>
+            <div class="chip">বমি</div>
+            <div class="chip">দুর্বলতা</div>
+            <div class="chip">ঘাম</div>
+          </div>
+        </div>
+      </div>
+      <div style="align-self:flex-end">
+        <div class="bubble user">হ্যাঁ, কাঁপুনি আছে</div>
+      </div>
+      <div>
+        <div class="bubble-sender">শুরক্ষা AI</div>
+        <div class="bubble ai warn">⚠️ ডেঙ্গুর লক্ষণ দেখা যাচ্ছে। দ্রুত ডাক্তারের সাথে যোগাযোগ করুন।</div>
+      </div>
+    </div>
+
+    <div class="chat-input-row">
+      <div class="chat-box">বাংলায় লিখুন অথবা কথা বলুন...</div>
+      <div class="mic-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2a3 3 0 013 3v7a3 3 0 01-6 0V5a3 3 0 013-3z" stroke-width="2"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+    </div>
+
+    <div class="nav">
+      <div class="nav-tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke-width="1.8"/></svg><span>হোম</span></div>
+      <div class="nav-tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke-width="1.8"/></svg><span>AI চ্যাট</span></div>
+      <div class="nav-tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-width="1.8"/><path d="M12 8v4l3 3" stroke-width="1.8" stroke-linecap="round"/></svg><span>জরুরি</span></div>
+      <div class="nav-tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke-width="1.8"/><circle cx="12" cy="7" r="4" stroke-width="1.8"/></svg><span>প্রোফাইল</span></div>
+    </div>
+  </div>
+  <div class="screen-label">AI Chat</div>
+</div>
+
+<!-- ══════════════════════════════
+     SCREEN 3 — EMERGENCY
+══════════════════════════════ -->
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="notch"><div class="notch-pill"></div></div>
+    <div class="sbar"><span>9:45</span><div class="sbar-icons"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="12" height="12"><path d="M1.2 8.4C4.4 5.2 8.9 3 12 3s7.6 2.2 10.8 5.4" stroke-width="1.8" stroke-linecap="round"/></svg></div></div>
+    <div class="strip">Screen 3 — Emergency</div>
+
+    <div class="hdr red">
+      <div class="hdr-title">🚨 জরুরি সেবা</div>
+      <div class="hdr-sub">তাৎক্ষণিক সাহায্য পান</div>
+    </div>
+
+    <div class="scroll">
+      <div class="emg-sos-card">
+        <div class="emg-sos-title">🆘 এক-ক্লিক SOS</div>
+        <div class="emg-sos-sub">আপনার পরিবার ও হেল্পলাইনে অবস্থান যাবে</div>
+        <div class="emg-sos-cta">এখনই পাঠান</div>
+      </div>
+
+      <div class="offline-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="1" y1="1" x2="23" y2="23" stroke-width="2" stroke-linecap="round"/><path d="M16.7 16.7A10 10 0 017.3 7.3M3.1 3.1a15.9 15.9 0 0117.8 17.8M9.5 9.5A5 5 0 0114.5 14.5" stroke-width="2" stroke-linecap="round"/></svg>
+        অফলাইনেও কাজ করে — ইন্টারনেট ছাড়া
+      </div>
+
+      <div class="emg-list">
+        <div class="emg-item">
+          <div class="emg-icon hosp">🏥</div>
+          <div>
+            <div class="emg-label">কাছের হাসপাতাল</div>
+            <div class="emg-sub">ঢাকা মেডিকেল কলেজ</div>
+          </div>
+          <div class="emg-dist">১.২ কিমি</div>
+        </div>
+        <div class="emg-item">
+          <div class="emg-icon shelt">🏠</div>
+          <div>
+            <div class="emg-label">আশ্রয়কেন্দ্র</div>
+            <div class="emg-sub">উত্তরা মডেল স্কুল</div>
+          </div>
+          <div class="emg-dist">০.৮ কিমি</div>
+        </div>
+        <div class="emg-item">
+          <div class="emg-icon first">🩹</div>
+          <div>
+            <div class="emg-label">প্রথম চিকিৎসা গাইড</div>
+            <div class="emg-sub">অফলাইনে পড়ুন</div>
+          </div>
+          <div class="emg-arr">›</div>
+        </div>
+        <div class="emg-item">
+          <div class="emg-icon" style="background:#FBEAF0">📞</div>
+          <div>
+            <div class="emg-label">জরুরি হেল্পলাইন</div>
+            <div class="emg-sub">999 · 16257 · 1090</div>
+          </div>
+          <div class="emg-arr">›</div>
+        </div>
+      </div>
+      <div class="pb"></div>
+    </div>
+
+    <div class="nav">
+      <div class="nav-tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke-width="1.8"/></svg><span>হোম</span></div>
+      <div class="nav-tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke-width="1.8"/></svg><span>AI চ্যাট</span></div>
+      <div class="nav-tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-width="1.8"/><path d="M12 8v4l3 3" stroke-width="1.8" stroke-linecap="round"/></svg><span>জরুরি</span></div>
+      <div class="nav-tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke-width="1.8"/><circle cx="12" cy="7" r="4" stroke-width="1.8"/></svg><span>প্রোফাইল</span></div>
+    </div>
+  </div>
+  <div class="screen-label">Emergency</div>
+</div>
+
+<!-- ══════════════════════════════
+     SCREEN 4 — DISASTER ALERTS
+══════════════════════════════ -->
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="notch"><div class="notch-pill"></div></div>
+    <div class="sbar"><span>9:47</span><div class="sbar-icons"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="12" height="12"><path d="M1.2 8.4C4.4 5.2 8.9 3 12 3s7.6 2.2 10.8 5.4" stroke-width="1.8" stroke-linecap="round"/></svg></div></div>
+    <div class="strip">Screen 4 — Disaster Alerts</div>
+
+    <div class="hdr purple">
+      <div class="hdr-title">🌩️ দুর্যোগ সতর্কতা</div>
+      <div class="hdr-sub">লাইভ আপডেট — বাংলাদেশ</div>
+    </div>
+
+    <div class="scroll">
+      <div class="map-mock">
+        <div class="map-lines">
+          <div class="map-cell"></div><div class="map-cell"></div><div class="map-cell"></div><div class="map-cell"></div><div class="map-cell"></div><div class="map-cell"></div>
+          <div class="map-cell"></div><div class="map-cell"></div><div class="map-cell"></div><div class="map-cell"></div><div class="map-cell"></div><div class="map-cell"></div>
+          <div class="map-cell"></div><div class="map-cell"></div><div class="map-cell"></div><div class="map-cell"></div><div class="map-cell"></div><div class="map-cell"></div>
+          <div class="map-cell"></div><div class="map-cell"></div><div class="map-cell"></div><div class="map-cell"></div><div class="map-cell"></div><div class="map-cell"></div>
+        </div>
+        <div class="map-pin">📍</div>
+        <div class="map-loc-label">আপনার অবস্থান</div>
+      </div>
+
+      <div class="alerts-list">
+        <div class="alert-card flood">
+          <div class="alert-top">
+            <div class="alert-title">🌊 বন্যা সতর্কতা — সিলেট</div>
+            <div class="badge high">উচ্চ</div>
+          </div>
+          <div class="alert-desc">সুরমা নদীর পানি বিপদসীমার উপরে। নিরাপদ স্থানে যান।</div>
+          <div class="alert-time">আজ, সকাল ৮:৩০</div>
+        </div>
+        <div class="alert-card cyclone">
+          <div class="alert-top">
+            <div class="alert-title">🌀 ঘূর্ণিঝড় — চট্টগ্রাম</div>
+            <div class="badge med">মাঝারি</div>
+          </div>
+          <div class="alert-desc">উপকূলীয় এলাকায় সতর্কতা জারি করা হয়েছে।</div>
+          <div class="alert-time">গতকাল, রাত ১১:০০</div>
+        </div>
+        <div class="alert-card heat">
+          <div class="alert-top">
+            <div class="alert-title">🌡️ তাপপ্রবাহ — রাজশাহী</div>
+            <div class="badge low">নিম্ন</div>
+          </div>
+          <div class="alert-desc">দুপুরে বাইরে না যাওয়ার পরামর্শ দেওয়া হচ্ছে।</div>
+          <div class="alert-time">২ দিন আগে</div>
+        </div>
+      </div>
+      <div class="pb"></div>
+    </div>
+
+    <div class="nav">
+      <div class="nav-tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke-width="1.8"/></svg><span>হোম</span></div>
+      <div class="nav-tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke-width="1.8"/></svg><span>AI চ্যাট</span></div>
+      <div class="nav-tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-width="1.8"/><path d="M12 8v4l3 3" stroke-width="1.8" stroke-linecap="round"/></svg><span>জরুরি</span></div>
+      <div class="nav-tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke-width="1.8"/><circle cx="12" cy="7" r="4" stroke-width="1.8"/></svg><span>প্রোফাইল</span></div>
+    </div>
+  </div>
+  <div class="screen-label">Disaster Alerts</div>
+</div>
+
+<!-- ══════════════════════════════
+     SCREEN 5 — PROFILE
+══════════════════════════════ -->
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="notch"><div class="notch-pill"></div></div>
+    <div class="sbar"><span>9:50</span><div class="sbar-icons"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="12" height="12"><path d="M1.2 8.4C4.4 5.2 8.9 3 12 3s7.6 2.2 10.8 5.4" stroke-width="1.8" stroke-linecap="round"/></svg></div></div>
+    <div class="strip">Screen 5 — Health Profile</div>
+
+    <div class="profile-hdr">
+      <div class="profile-avatar">👩</div>
+      <div class="profile-name">রাহেলা বেগম</div>
+      <div class="profile-age">বয়স ৪২ · রক্তের গ্রুপ B+ · ঢাকা</div>
+    </div>
+
+    <div class="scroll">
+      <div class="metrics-row">
+        <div class="metric-pill">
+          <div class="metric-val">36.8°</div>
+          <div class="metric-lbl">তাপমাত্রা</div>
+        </div>
+        <div class="metric-pill">
+          <div class="metric-val warn">120/80</div>
+          <div class="metric-lbl">রক্তচাপ</div>
+        </div>
+        <div class="metric-pill">
+          <div class="metric-val">98%</div>
+          <div class="metric-lbl">অক্সিজেন</div>
+        </div>
+      </div>
+
+      <div class="section-head">⏰ আজকের রিমাইন্ডার</div>
+      <div class="reminder-list">
+        <div class="reminder-row">
+          <div class="rem-icon purple">💊</div>
+          <div>
+            <div class="rem-label">প্যারাসিটামল ৫০০মি.গ্রা.</div>
+            <div class="rem-time">সকাল ৮:০০</div>
+          </div>
+          <div class="rem-check done">✓</div>
+        </div>
+        <div class="reminder-row">
+          <div class="rem-icon blue">💧</div>
+          <div>
+            <div class="rem-label">পানি পান করুন</div>
+            <div class="rem-time">দুপুর ১২:০০</div>
+          </div>
+          <div class="rem-check"></div>
+        </div>
+        <div class="reminder-row">
+          <div class="rem-icon red">❤️</div>
+          <div>
+            <div class="rem-label">রক্তচাপ পরীক্ষা</div>
+            <div class="rem-time">বিকাল ৫:০০</div>
+          </div>
+          <div class="rem-check"></div>
+        </div>
+      </div>
+
+      <div class="section-head">⚡ দ্রুত সেবা</div>
+      <div class="quick-tiles">
+        <div class="qtile g">
+          <span class="qtile-icon">📋</span>
+          প্রেসক্রিপশন স্ক্যান
+        </div>
+        <div class="qtile p">
+          <span class="qtile-icon">🧠</span>
+          মানসিক সুস্থতা
+        </div>
+        <div class="qtile a">
+          <span class="qtile-icon">🥗</span>
+          পুষ্টি পরামর্শ
+        </div>
+      </div>
+    </div>
+
+    <div class="nav">
+      <div class="nav-tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke-width="1.8"/></svg><span>হোম</span></div>
+      <div class="nav-tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke-width="1.8"/></svg><span>AI চ্যাট</span></div>
+      <div class="nav-tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10" stroke-width="1.8"/><path d="M12 8v4l3 3" stroke-width="1.8" stroke-linecap="round"/></svg><span>জরুরি</span></div>
+      <div class="nav-tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke-width="1.8"/><circle cx="12" cy="7" r="4" stroke-width="1.8"/></svg><span>প্রোফাইল</span></div>
+    </div>
+  </div>
+  <div class="screen-label">Health Profile</div>
+</div>
+
+<!-- ══════════════════════════════
+     SCREEN 6 — LOGIN
+══════════════════════════════ -->
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="notch"><div class="notch-pill"></div></div>
+    <div class="sbar"><span>9:41</span><div class="sbar-icons"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="12" height="12"><rect x="2" y="7" width="18" height="11" rx="2" stroke-width="1.8"/><path d="M22 11v3" stroke-width="2" stroke-linecap="round"/></svg></div></div>
+    <div class="strip">Screen 6 — Login</div>
+
+    <div class="login-brand">
+      <div class="login-logo">💚</div>
+      <div class="login-name">শুরক্ষা AI</div>
+      <div class="login-sub">আপনার স্বাস্থ্য সহায়ক</div>
+    </div>
+
+    <div class="form-body">
+      <div>
+        <label class="flabel">📱 মোবাইল নম্বর</label>
+        <div class="finput-wrap">
+          <div class="fi-left"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="5" y="2" width="14" height="20" rx="2" stroke-width="1.8"/><line x1="12" y1="18" x2="12" y2="18.01" stroke-width="2" stroke-linecap="round"/></svg></div>
+          <div class="finput">+880 1X XX XXX XXX</div>
+        </div>
+      </div>
+      <div>
+        <label class="flabel">🔒 পাসওয়ার্ড</label>
+        <div class="finput-wrap">
+          <div class="fi-left"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="11" width="18" height="11" rx="2" stroke-width="1.8"/><path d="M7 11V7a5 5 0 0110 0v4" stroke-width="1.8"/></svg></div>
+          <div class="finput">••••••••</div>
+          <div class="fi-right"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke-width="1.8"/><circle cx="12" cy="12" r="3" stroke-width="1.8"/></svg></div>
+        </div>
+      </div>
+      <div class="forgot">পাসওয়ার্ড ভুলে গেছেন?</div>
+      <button class="btn-primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        লগইন করুন
+      </button>
+      <div class="divider-row"><div class="div-line"></div><span>বা</span><div class="div-line"></div></div>
+      <div class="social-row">
+        <div class="social-btn">🔵 Google</div>
+        <div class="social-btn">📘 Facebook</div>
+      </div>
+      <div class="link-row">নতুন? <span class="link-text">নিবন্ধন করুন</span></div>
+      <div class="trust-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke-width="1.8"/><path d="M9 12l2 2 4-4" stroke-width="2" stroke-linecap="round"/></svg>
+        আপনার তথ্য সম্পূর্ণ নিরাপদ ও এনক্রিপ্টেড
+      </div>
+    </div>
+  </div>
+  <div class="screen-label">Login</div>
+</div>
+
+<!-- ══════════════════════════════
+     SCREEN 7 — REGISTRATION
+══════════════════════════════ -->
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="notch"><div class="notch-pill"></div></div>
+    <div class="sbar"><span>9:43</span><div class="sbar-icons"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="12" height="12"><rect x="2" y="7" width="18" height="11" rx="2" stroke-width="1.8"/></svg></div></div>
+    <div class="strip">Screen 7 — Registration</div>
+
+    <div class="reg-brand">
+      <div class="reg-brand-title">নতুন অ্যাকাউন্ট তৈরি করুন</div>
+      <div class="reg-brand-sub">মাত্র কয়েকটি তথ্য দিন</div>
+    </div>
+    <div class="step-dots">
+      <div class="sdot done"></div>
+      <div class="sdot active"></div>
+      <div class="sdot idle"></div>
+    </div>
+
+    <div class="form-body" style="gap:10px; padding-top:12px">
+      <div class="frow-2">
+        <div>
+          <label class="flabel">পুরো নাম</label>
+          <div class="finput-wrap">
+            <div class="fi-left"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke-width="1.8"/><circle cx="12" cy="7" r="4" stroke-width="1.8"/></svg></div>
+            <div class="finput" style="font-size:9.5px">আপনার নাম</div>
+          </div>
+        </div>
+        <div>
+          <label class="flabel">বয়স</label>
+          <div class="finput-wrap">
+            <div class="fi-left"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2" stroke-width="1.8"/><line x1="16" y1="2" x2="16" y2="6" stroke-width="1.8" stroke-linecap="round"/><line x1="8" y1="2" x2="8" y2="6" stroke-width="1.8" stroke-linecap="round"/><line x1="3" y1="10" x2="21" y2="10" stroke-width="1.8"/></svg></div>
+            <div class="finput" style="font-size:9.5px">বছর</div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label class="flabel">মোবাইল নম্বর</label>
+        <div class="finput-wrap">
+          <div class="fi-left"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="5" y="2" width="14" height="20" rx="2" stroke-width="1.8"/></svg></div>
+          <div class="finput">+880 1X XXX XXXXX</div>
+        </div>
+      </div>
+
+      <div>
+        <label class="flabel">রক্তের গ্রুপ</label>
+        <div class="bg-chips-wrap">
+          <div class="bg-chip sel">A+</div>
+          <div class="bg-chip">A−</div>
+          <div class="bg-chip">B+</div>
+          <div class="bg-chip">B−</div>
+          <div class="bg-chip">AB+</div>
+          <div class="bg-chip">AB−</div>
+          <div class="bg-chip">O+</div>
+          <div class="bg-chip">O−</div>
+        </div>
+      </div>
+
+      <div>
+        <label class="flabel">বিভাগ / জেলা</label>
+        <div class="finput-wrap">
+          <div class="fi-left"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z" stroke-width="1.8"/><circle cx="12" cy="10" r="3" stroke-width="1.8"/></svg></div>
+          <div class="finput">ঢাকা — মিরপুর</div>
+          <div class="fi-right"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="6 9 12 15 18 9" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        </div>
+      </div>
+
+      <div>
+        <label class="flabel">পাসওয়ার্ড</label>
+        <div class="finput-wrap">
+          <div class="fi-left"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="11" width="18" height="11" rx="2" stroke-width="1.8"/><path d="M7 11V7a5 5 0 0110 0v4" stroke-width="1.8"/></svg></div>
+          <div class="finput">••••••••</div>
+          <div class="fi-right"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke-width="1.8"/><circle cx="12" cy="12" r="3" stroke-width="1.8"/></svg></div>
+        </div>
+      </div>
+
+      <div class="consent-box">
+        <div class="checkbox-done">✓</div>
+        <div class="consent-text">আমি <span class="consent-link">গোপনীয়তা নীতি</span> ও <span class="consent-link">শর্তাবলী</span> পড়েছি এবং সম্মতি দিচ্ছি</div>
+      </div>
+
+      <button class="btn-primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke-width="2"/><circle cx="8.5" cy="7" r="4" stroke-width="2"/><line x1="20" y1="8" x2="20" y2="14" stroke-width="2" stroke-linecap="round"/><line x1="23" y1="11" x2="17" y2="11" stroke-width="2" stroke-linecap="round"/></svg>
+        নিবন্ধন সম্পন্ন করুন
+      </button>
+      <div class="link-row">অ্যাকাউন্ট আছে? <span class="link-text">লগইন করুন</span></div>
+    </div>
+  </div>
+  <div class="screen-label">Registration</div>
+</div>
+
+<!-- ══════════════════════════════
+     SCREEN 8 — DATA ENTRY
+══════════════════════════════ -->
+<div class="phone-wrap">
+  <div class="phone">
+    <div class="notch"><div class="notch-pill"></div></div>
+    <div class="sbar"><span>9:50</span><div class="sbar-icons"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" width="12" height="12"><rect x="2" y="7" width="18" height="11" rx="2" stroke-width="1.8"/></svg></div></div>
+    <div class="strip">Screen 8 — Daily Data Entry</div>
+
+    <div class="hdr blue">
+      <div class="hdr-row">
+        <div class="hdr-back">‹</div>
+        <div>
+          <div class="hdr-title">আজকের স্বাস্থ্য তথ্য</div>
+          <div class="hdr-sub">১৪ মে, ২০২৬ — রাহেলা বেগম</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scroll">
+      <div class="section-head">❤️ গুরুত্বপূর্ণ শারীরিক তথ্য</div>
+      <div class="vital-grid">
+        <div class="vital-card">
+          <div class="vital-lbl">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 14.76V3.5a2.5 2.5 0 00-5 0v11.26a4.5 4.5 0 105 0z" stroke-width="1.8"/></svg>
+            তাপমাত্রা
+          </div>
+          <div class="vital-inp">36.8</div>
+          <div class="vital-unit">°সেলসিয়াস</div>
+        </div>
+        <div class="vital-card">
+          <div class="vital-lbl">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            রক্তচাপ
+          </div>
+          <div class="vital-inp">120/80</div>
+          <div class="vital-unit">mmHg</div>
+        </div>
+        <div class="vital-card">
+          <div class="vital-lbl">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" stroke-width="1.8"/><path d="M8 14s1.5 2 4 2 4-2 4-2" stroke-width="1.8" stroke-linecap="round"/><path d="M9 9h.01M15 9h.01" stroke-width="2" stroke-linecap="round"/></svg>
+            অক্সিজেন
+          </div>
+          <div class="vital-inp">98</div>
+          <div class="vital-unit">% SpO₂</div>
+        </div>
+        <div class="vital-card">
+          <div class="vital-lbl">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" stroke-width="1.8"/></svg>
+            হার্ট রেট
+          </div>
+          <div class="vital-inp">72</div>
+          <div class="vital-unit">bpm</div>
+        </div>
+      </div>
+
+      <div class="section-head">😊 আজকের অনুভূতি</div>
+      <div class="mood-chips">
+        <div class="mood-chip sel">ভালো আছি</div>
+        <div class="mood-chip def">দুর্বল</div>
+        <div class="mood-chip def">মাথাব্যথা</div>
+        <div class="mood-chip def">জ্বর</div>
+        <div class="mood-chip def">বমি</div>
+        <div class="mood-chip def">ক্লান্ত</div>
+      </div>
+
+      <div class="section-head">💊 ওষুধ সেবন</div>
+      <div class="med-list">
+        <div class="med-row">
+          <div class="med-check-done">✓</div>
+          <div class="med-label">প্যারাসিটামল ৫০০মি.গ্রা.</div>
+          <div class="med-status-done">খেয়েছি ✓</div>
+        </div>
+        <div class="med-row">
+          <div class="med-check-empty"></div>
+          <div class="med-label">মেটফর্মিন ৫০০মি.গ্রা.</div>
+          <div class="med-status-empty">বাকি আছে</div>
+        </div>
+      </div>
+
+      <div class="section-head">💧 পানি পান</div>
+      <div class="water-row">
+        <div class="water-label">গ্লাস পান করেছি</div>
+        <div class="water-ctrl">
+          <div class="w-btn minus">−</div>
+          <div class="w-count">5</div>
+          <div class="w-btn plus">+</div>
+        </div>
+      </div>
+      <div class="pb"></div>
+    </div>
+
+    <div class="save-bar">
+      <button class="btn-primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" stroke-width="2"/><polyline points="17 21 17 13 7 13 7 21" stroke-width="2"/><polyline points="7 3 7 8 15 8" stroke-width="2"/></svg>
+        তথ্য সংরক্ষণ করুন
+      </button>
+    </div>
+
+    <div class="nav">
+      <div class="nav-tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke-width="1.8"/></svg><span>হোম</span></div>
+      <div class="nav-tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke-width="1.8"/></svg><span>AI চ্যাট</span></div>
+      <div class="nav-tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke-width="1.8" stroke-linecap="round"/></svg><span>তথ্য</span></div>
+      <div class="nav-tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke-width="1.8"/><circle cx="12" cy="7" r="4" stroke-width="1.8"/></svg><span>প্রোফাইল</span></div>
+    </div>
+  </div>
+  <div class="screen-label">Data Entry</div>
+</div>
+
+</div><!-- /grid -->
+
+<div class="figma-hint">
+  <strong>How to import into Figma:</strong><br>
+  Open this file in Chrome → Right-click each phone → "Inspect" → Screenshot each screen at 2× zoom.<br>
+  Or use browser screenshot tool (F12 → device toolbar → 375px width) to capture individual screens.<br>
+  Drag the images into Figma frames (390 × 844px each) to build your prototype.<br><br>
+  Built for <strong>Shurokkha AI Hackathon</strong> · AI for Humanity, Safety, and Accessibility 🌿
+</div>
+
+</body>
+</html>

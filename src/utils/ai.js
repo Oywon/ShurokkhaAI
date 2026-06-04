@@ -1,9 +1,23 @@
-// Lightweight AI helpers — call external AI proxy if REACT_APP_AI_API_URL is set,
-// otherwise fall back to a local heuristic stub. This file also supports
-// direct client-side OpenAI calls when `REACT_APP_OPENAI_API_KEY` is present.
+// Helper to safely get environment variables in both Vite and Create React App environments
+function getEnvVar(name) {
+  const viteName = name.replace("REACT_APP_", "VITE_");
+  try {
+    if (import.meta.env && import.meta.env[viteName]) {
+      return import.meta.env[viteName];
+    }
+  } catch (e) {}
+
+  try {
+    if (typeof process !== "undefined" && process.env && process.env[name]) {
+      return process.env[name];
+    }
+  } catch (e) {}
+
+  return null;
+}
 
 async function callOpenAIChat(prompt) {
-  const key = process.env.REACT_APP_OPENAI_API_KEY;
+  const key = getEnvVar('REACT_APP_OPENAI_API_KEY');
   if (!key) return null;
   try {
     const body = {
@@ -37,8 +51,9 @@ async function callOpenAIChat(prompt) {
 }
 
 export async function analyzeSymptomsAPI(text) {
-  const url = process.env.REACT_APP_AI_API_URL;
-  // 1) If user provided a proxy URL, prefer that
+  // Use VITE_AI_API_URL or fallback to local proxy port 3001
+  const url = getEnvVar('REACT_APP_AI_API_URL') || 'http://localhost:3001';
+  
   if (url) {
     try {
       const res = await fetch(`${url.replace(/\/$/, '')}/analyze`, {
@@ -50,12 +65,13 @@ export async function analyzeSymptomsAPI(text) {
       const data = await res.json();
       return data.answer || JSON.stringify(data);
     } catch (err) {
-      console.error('AI analyze error', err);
+      console.error('AI analyze error, attempting fallback...', err);
     }
   }
 
-  // 2) If an OpenAI key is set in env, call OpenAI directly (insecure client-side)
-  if (process.env.REACT_APP_OPENAI_API_KEY) {
+  // 2) Direct client-side OpenAI call (insecure fallback)
+  const openAIKey = getEnvVar('REACT_APP_OPENAI_API_KEY');
+  if (openAIKey) {
     const prompt = `User symptom report:\n${text}\n\nProvide a short, safe, primary-care style recommendation in Bengali when possible.`;
     const out = await callOpenAIChat(prompt);
     if (out) return out;
@@ -77,8 +93,8 @@ export async function analyzeSymptomsAPI(text) {
 }
 
 export async function transcribeAudioAPI(blob) {
-  // If user provided a proxy URL, prefer that
-  const url = process.env.REACT_APP_AI_API_URL;
+  const url = getEnvVar('REACT_APP_AI_API_URL') || 'http://localhost:3001';
+  
   if (url) {
     try {
       const fd = new FormData();
@@ -91,12 +107,12 @@ export async function transcribeAudioAPI(blob) {
       const data = await res.json();
       return data.text || null;
     } catch (err) {
-      console.error('Transcription error', err);
+      console.error('Transcription error, attempting fallback...', err);
     }
   }
 
-  // If OpenAI key is present, call Whisper (note: client-side API key exposure!)
-  const key = process.env.REACT_APP_OPENAI_API_KEY;
+  // Direct Whisper client call (insecure fallback)
+  const key = getEnvVar('REACT_APP_OPENAI_API_KEY');
   if (key) {
     try {
       const fd = new FormData();
