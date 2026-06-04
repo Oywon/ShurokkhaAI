@@ -1,0 +1,122 @@
+@import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+  --primary: #1B6B4A;
+  --primary-light: #2E9E6E;
+  --primary-dark: #0F4A32;
+  --emergency: #D93025;
+  --emergency-light: #FF4436;
+  --accent: #F0A500;
+  --bg: #F5F7F5;
+  --surface: #FFFFFF;
+  --text-primary: #1A2E1A;
+  --text-secondary: #4A6A4A;
+  --text-muted: #7A9A7A;
+  --border: #D4E8D4;
+  --shadow: 0 2px 12px rgba(27, 107, 74, 0.1);
+  --radius: 12px;
+  --radius-lg: 20px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', 'Hind Siliguri', sans-serif;
+  background: var(--bg);
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+.app-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content {
+  flex: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 24px 16px;
+}
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+
+/* Buttons */
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: var(--radius);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  font-family: inherit;
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+.btn-emergency {
+  background: var(--emergency);
+  color: white;
+  border: none;
+  padding: 16px 32px;
+  border-radius: var(--radius);
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.btn-emergency:hover {
+  background: var(--emergency-light);
+  transform: scale(1.02);
+}
+
+/* Bengali text */
+.bengali {
+  font-family: 'Hind Siliguri', sans-serif;
+}
+
+/* Page title */
+.page-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--primary-dark);
+  margin-bottom: 8px;
+}
+
+.page-subtitle {
+  color: var(--text-secondary);
+  font-size: 15px;
+  margin-bottom: 24px;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .main-content {
+    padding: 16px 12px;
+  }
+
+  .page-title {
+    font-size: 22px;
+  }
+}
