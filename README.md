@@ -119,9 +119,6 @@ npm install
 # Copy the env template and configure it
 cp .env.example .env
 
-# Run in Development mode
-npm run dev
-
 # Run in Production mode
 npm start
 ```
