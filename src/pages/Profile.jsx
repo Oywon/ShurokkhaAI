@@ -35,6 +35,12 @@ import {
   getMentalHealthMeta,
   saveMentalAssessment,
 } from "../firebase/dbService";
+import {
+  calculateNutritionPlan,
+  GOAL_OPTIONS,
+  ACTIVITY_OPTIONS,
+  GENDER_OPTIONS
+} from "../utils/nutritionCalculator";
 
 function intensityBn(level) {
   if (level === "mild") return "হালকা";
@@ -92,6 +98,21 @@ export default function Profile() {
   const [mhResult, setMhResult] = useState(null); // { quiz, game, suggestions, ... }
   const [mhLoading, setMhLoading] = useState(false);
   const mhGameTimers = useRef([]);                // active setTimeout handles
+
+  // ── Nutrition planner state ───────────────────────────────
+  // step: 'form' | 'result'
+  const [nutStep, setNutStep] = useState("form");
+  const [nutInput, setNutInput] = useState({
+    weight: "",
+    height: "",
+    age: "",
+    gender: "male",
+    exerciseHours: 3,
+    goal: "maintain"
+  });
+  const [nutResult, setNutResult] = useState(null);
+  const [nutErrors, setNutErrors] = useState({});
+  const [nutCalculating, setNutCalculating] = useState(false);
 
   // ── Profile photo ──────────────────────────────────────────
   const [photoURL, setPhotoURL] = useState(null);
@@ -434,6 +455,49 @@ export default function Profile() {
     setMhQuiz({});
     setMhQuizIndex(0);
     setMhResult(null);
+  }
+
+  // ── Nutrition planner handlers ──────────────────────────────
+  function handleNutInput(field, value) {
+    setNutInput((prev) => ({ ...prev, [field]: value }));
+    if (nutErrors[field]) {
+      setNutErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
+  }
+
+  function calculateNutrition() {
+    setNutCalculating(true);
+    setNutErrors({});
+    // Tiny delay so the spinner shows even on fast machines
+    setTimeout(() => {
+      const parsed = {
+        weight:        parseFloat(nutInput.weight),
+        height:        parseFloat(nutInput.height),
+        age:           parseInt(nutInput.age, 10),
+        gender:        nutInput.gender,
+        exerciseHours: parseFloat(nutInput.exerciseHours) || 0,
+        goal:          nutInput.goal
+      };
+      const r = calculateNutritionPlan(parsed);
+      if (!r.ok) {
+        setNutErrors(r.errors || {});
+        setNutCalculating(false);
+        return;
+      }
+      setNutResult(r);
+      setNutStep("result");
+      setNutCalculating(false);
+    }, 350);
+  }
+
+  function restartNutrition() {
+    setNutStep("form");
+    setNutResult(null);
+    setNutErrors({});
   }
 
   // Load profile + vitals history via dbService (Firestore + localStorage fallback)
@@ -925,23 +989,215 @@ export default function Profile() {
               </>
             )}
 
-            {/* Nutrition Advice Modal */}
+            {/* Nutrition Advice Modal (dynamic) */}
             {activeModal === "nutrition" && (
               <>
                 <div className="modal-title">🥗 পুষ্টি ও খাদ্য পরামর্শ</div>
-                <div style={{ fontSize: "11px", display: "flex", flexDirection: "column", gap: "10px" }}>
-                  <p>সুস্থ থাকার জন্য আজকের খাদ্য তালিকা নির্বাচন করুন:</p>
-                  <div style={{ background: "var(--amber-light)", padding: "10px", borderRadius: "var(--r-xs)" }}>
-                    <strong>💧 ডিহাইড্রেশন এড়াতে:</strong>
-                    <p style={{ color: "var(--txt2)", marginTop: "4px" }}>
-                      প্রচুর পানি, ডাবের পানি বা স্যালাইন পান করুন। অতিরিক্ত ক্যাফেইন জাতীয় পানীয় এড়িয়ে চলুন।                    </p>
+
+                {nutStep === "form" && (
+                  <div className="nut-body">
+                    <p className="nut-lead">
+                      আপনার ওজন, বয়স, লিঙ্গ ও ব্যায়ামের পরিমাণ অনুযায়ী ক্যালোরি ও খাবারের পরিকল্পনা তৈরি হবে।
+                    </p>
+
+                    <div className="nut-form-grid">
+                      <label className="nut-field">
+                        <span>ওজন (কেজি)</span>
+                        <input
+                          className="nut-input"
+                          type="number"
+                          inputMode="decimal"
+                          min="30" max="200"
+                          value={nutInput.weight}
+                          onChange={(e) => handleNutInput("weight", e.target.value)}
+                          placeholder="যেমন: ৬৫"
+                        />
+                        {nutErrors.weight && <em className="nut-err">{nutErrors.weight}</em>}
+                      </label>
+
+                      <label className="nut-field">
+                        <span>উচ্চতা (সেমি)</span>
+                        <input
+                          className="nut-input"
+                          type="number"
+                          inputMode="numeric"
+                          min="100" max="220"
+                          value={nutInput.height}
+                          onChange={(e) => handleNutInput("height", e.target.value)}
+                          placeholder="যেমন: ১৬৮"
+                        />
+                        {nutErrors.height && <em className="nut-err">{nutErrors.height}</em>}
+                      </label>
+
+                      <label className="nut-field">
+                        <span>বয়স (বছর)</span>
+                        <input
+                          className="nut-input"
+                          type="number"
+                          inputMode="numeric"
+                          min="5" max="100"
+                          value={nutInput.age}
+                          onChange={(e) => handleNutInput("age", e.target.value)}
+                          placeholder="যেমন: ২৮"
+                        />
+                        {nutErrors.age && <em className="nut-err">{nutErrors.age}</em>}
+                      </label>
+
+                      <label className="nut-field">
+                        <span>সাপ্তাহিক ব্যায়াম (ঘণ্টা)</span>
+                        <input
+                          className="nut-input"
+                          type="number"
+                          inputMode="decimal"
+                          min="0" max="25"
+                          value={nutInput.exerciseHours}
+                          onChange={(e) => handleNutInput("exerciseHours", e.target.value)}
+                          placeholder="যেমন: ৩"
+                        />
+                        {nutErrors.exerciseHours && <em className="nut-err">{nutErrors.exerciseHours}</em>}
+                      </label>
+                    </div>
+
+                    <div className="nut-radio-group">
+                      <span className="nut-radio-label">লিঙ্গ</span>
+                      <div className="nut-radio-options">
+                        {GENDER_OPTIONS.map((g) => (
+                          <button
+                            type="button"
+                            key={g.id}
+                            className={"nut-radio" + (nutInput.gender === g.id ? " active" : "")}
+                            onClick={() => handleNutInput("gender", g.id)}
+                          >
+                            {g.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="nut-radio-group">
+                      <span className="nut-radio-label">আপনার লক্ষ্য</span>
+                      <div className="nut-radio-options">
+                        {GOAL_OPTIONS.map((g) => (
+                          <button
+                            type="button"
+                            key={g.id}
+                            className={"nut-radio" + (nutInput.goal === g.id ? " active" : "")}
+                            onClick={() => handleNutInput("goal", g.id)}
+                          >
+                            {g.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="nut-actions">
+                      <button
+                        className="nut-cta"
+                        onClick={calculateNutrition}
+                        disabled={nutCalculating}
+                      >
+                        {nutCalculating ? "হিসাব হচ্ছে…" : "🍽️ পরিকল্পনা দেখুন"}
+                      </button>
+                    </div>
                   </div>
-                  <div style={{ background: "var(--amber-light)", padding: "10px", borderRadius: "var(--r-xs)" }}>
-                    <strong>🥬 ভিটামিন ও খনিজ:</strong>
-                    <p style={{ color: "var(--txt2)", marginTop: "4px" }}>
-                      খাবারে মৌসুমি ফল (যেমন: আম, লিচু, লেবু) এবং সবুজ শাকসবজি বেশি রাখুন, যা রোগ প্রতিরোধ ক্ষমতা বাড়াবে।                    </p>
+                )}
+
+                {nutStep === "result" && nutResult && (
+                  <div className="nut-body">
+                    <div className={"nut-bmi-banner nut-bmi-" + nutResult.bmiCategory.color}>
+                      BMI: <b>{nutResult.bmi}</b> ({nutResult.bmiCategory.label})
+                    </div>
+
+                    <div className="nut-stats">
+                      <div className="nut-stat">
+                        <span className="nut-stat-label">BMR</span>
+                        <span className="nut-stat-value">{nutResult.bmr}</span>
+                        <span className="nut-stat-unit">কিলোক্যালরি</span>
+                      </div>
+                      <div className="nut-stat">
+                        <span className="nut-stat-label">TDEE</span>
+                        <span className="nut-stat-value">{nutResult.tdee}</span>
+                        <span className="nut-stat-unit">কিলোক্যালরি</span>
+                      </div>
+                      <div className="nut-stat nut-stat-target">
+                        <span className="nut-stat-label">লক্ষ্য</span>
+                        <span className="nut-stat-value">{nutResult.targetKcal}</span>
+                        <span className="nut-stat-unit">কিলোক্যালরি/দিন</span>
+                      </div>
+                      <div className="nut-stat">
+                        <span className="nut-stat-label">পানি</span>
+                        <span className="nut-stat-value">{nutResult.waterIntake}</span>
+                        <span className="nut-stat-unit">লিটার/দিন</span>
+                      </div>
+                    </div>
+
+                    <div className="nut-macros">
+                      <span>প্রোটিন: <b>{nutResult.macros.protein} গ্রাম</b></span>
+                      <span>শর্করা: <b>{nutResult.macros.carbs} গ্রাম</b></span>
+                      <span>চর্বি: <b>{nutResult.macros.fat} গ্রাম</b></span>
+                    </div>
+
+                    <div className="nut-context">
+                      <small>
+                        কার্যকলাপ: {nutResult.activity.label} • লক্ষ্য: {nutResult.goal.label} ({nutResult.goal.adjust > 0 ? "+" : ""}{nutResult.goal.adjust} কিলোক্যালরি)
+                      </small>
+                    </div>
+
+                    <div className="nut-tips">
+                      {nutResult.tips.map((t, i) => (
+                        <div key={i} className="nut-tip">💡 {t}</div>
+                      ))}
+                    </div>
+
+                    <h4 className="nut-section-title">🍽️ আজকের খাবার পরিকল্পনা</h4>
+
+                    {nutResult.mealOrder.map((mealKey) => {
+                      const data = nutResult.meals[mealKey];
+                      if (!data || data.items.length === 0) return null;
+                      const meta = {
+                        breakfast: { label: "সকালের নাস্তা", icon: "🌅", pct: 25 },
+                        lunch:     { label: "দুপুরের খাবার",  icon: "🍛", pct: 35 },
+                        snack:     { label: "বিকেলের নাস্তা", icon: "🥪", pct: 10 },
+                        dinner:    { label: "রাতের খাবার",    icon: "🌙", pct: 30 }
+                      }[mealKey];
+                      return (
+                        <div key={mealKey} className="nut-meal-group">
+                          <div className="nut-meal-head">
+                            <span className="nut-meal-icon">{meta.icon}</span>
+                            <span className="nut-meal-label">{meta.label}</span>
+                            <span className="nut-meal-budget">
+                              {data.totals.kcal} / {data.budget} কিলোক্যালরি ({meta.pct}%)
+                            </span>
+                          </div>
+                          <ul className="nut-food-list">
+                            {data.items.map((it) => (
+                              <li key={it.id} className="nut-food-item">
+                                <div className="nut-food-main">
+                                  <span className="nut-food-name">
+                                    {it.name}
+                                  </span>
+                                  <span className="nut-food-portion">{it.portion}</span>
+                                </div>
+                                <div className="nut-food-macros">
+                                  <span className="nut-food-kcal">{it.kcal} কিলো</span>
+                                  <span className="nut-food-macro">P {it.protein}</span>
+                                  <span className="nut-food-macro">C {it.carbs}</span>
+                                  <span className="nut-food-macro">F {it.fat}</span>
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      );
+                    })}
+
+                    <div className="nut-actions">
+                      <button className="nut-cta nut-cta-secondary" onClick={restartNutrition}>
+                        ↻ নতুন হিসাব করুন
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
               </>
             )}
 
