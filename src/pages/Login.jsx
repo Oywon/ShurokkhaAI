@@ -1,112 +1,100 @@
-import React, { useEffect, useState } from "react";
-import { RecaptchaVerifier, signInWithPhoneNumber, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+﻿import React, { useEffect, useState } from "react";
+import {
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  GoogleAuthProvider,
+  signInWithPopup,
+} from "firebase/auth";
 import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 import { auth } from "../firebase/config";
+import { errorMessage } from "../firebase/dbService";
 
-function normalizePhone(phone) {
-  let value = phone.trim().replace(/\s+/g, "");
-  if (!value) return "";
-  if (value.startsWith("+")) return value;
-  if (value.startsWith("0")) return "+880" + value.slice(1);
-  if (value.startsWith("880")) return "+" + value;
-  return "+880" + value;
+function normalizePhoneNumber(phone) {
+  const digits = (phone || "").replace(/[^0-9]/g, "");
+  if (digits.length === 11 && digits.startsWith("01")) {
+    return "+88" + digits;
+  }
+  if (digits.length === 10 && digits.startsWith("1")) {
+    return "+88" + digits;
+  }
+  return phone;
 }
 
 export default function Login() {
+  const [authMethod, setAuthMethod] = useState("phone");
   const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [confirmationResult, setConfirmationResult] = useState(null);
-  const [authMethod, setAuthMethod] = useState("phone");
-  const [step, setStep] = useState(1);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showReset, setShowReset] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetStep, setResetStep] = useState(1);
+  const [resetCode, setResetCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const { login, resetPassword, confirmResetCode } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     return () => {
       if (window.recaptchaVerifier) {
         window.recaptchaVerifier.clear();
-        window.recaptchaVerifier = null;
       }
     };
   }, []);
 
   function setupRecaptcha() {
-    try {
-      if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear();
-      }
-
-      window.recaptchaVerifier = new RecaptchaVerifier(
-        "recaptcha-container",
-        { 
-          size: "invisible",
-          callback: (response) => {
-            console.log("reCAPTCHA verified:", response);
-          },
-          "error-callback": () => {
-            console.error("reCAPTCHA error");
-          }
-        },
-        auth
-      );
-
-      return window.recaptchaVerifier;
-    } catch (err) {
-      console.error("reCAPTCHA setup error:", err);
-      return null;
+    if (window.recaptchaVerifier) {
+      window.recaptchaVerifier.clear();
     }
+    window.recaptchaVerifier = new RecaptchaVerifier(
+      "recaptcha-container",
+      {
+        size: "invisible",
+        callback: () => {},
+      },
+      auth
+    );
   }
 
   function switchAuthMethod(method) {
-    if (method === authMethod) return;
     setAuthMethod(method);
     setError("");
     setSuccess("");
-    setOtp("");
-    setConfirmationResult(null);
     setStep(1);
+    setConfirmationResult(null);
+    setOtp("");
+    setShowReset(false);
   }
 
   async function handleSendOtp(e) {
     e.preventDefault();
     setError("");
     setSuccess("");
+    const normalizedPhone = normalizePhoneNumber(phone);
 
-    const formattedPhone = normalizePhone(phone);
-    if (!formattedPhone || !/^\+\d{10,15}$/.test(formattedPhone)) {
-      return setError("দয়া করে বৈধ মোবাইল নম্বর দিন। +8801XXXXXXXXX ফরম্যাট ব্যবহার করুন।");
+    if (!normalizedPhone || !/^\+?[0-9]{10,15}$/.test(normalizedPhone)) {
+      setError("সঠিক ফোন নম্বর লিখুন (যেমন +8801xxxxxxxxx)।");
+      return;
     }
 
     try {
       setLoading(true);
-      console.log("Attempting to send OTP to:", formattedPhone);
-      const verifier = setupRecaptcha();
-      if (!verifier) {
-        throw new Error("reCAPTCHA verification setup failed");
-      }
-      const result = await signInWithPhoneNumber(auth, formattedPhone, verifier);
-      console.log("OTP sent successfully");
-      setConfirmationResult(result);
+      setupRecaptcha();
+      const appVerifier = window.recaptchaVerifier;
+      const confirmation = await signInWithPhoneNumber(auth, normalizedPhone, appVerifier);
+      setConfirmationResult(confirmation);
       setStep(2);
-      setSuccess("OTP পাঠানো হয়েছে। অনুগ্রহ করে কোডটি লিখুন।");
+      setSuccess("ওটিপি পাঠানো হয়েছে, দয়া করে সেটি লিখুন।");
     } catch (err) {
-      console.error("Full error details:", err);
-      console.error("Error code:", err.code);
-      console.error("Error message:", err.message);
-      
-      let errorMsg = "OTP পাঠাতে ব্যর্থ হয়েছে। পরে আবার চেষ্টা করুন।";
-      if (err.code === "auth/invalid-phone-number") {
-        errorMsg = "অবৈধ মোবাইল নম্বর। +8801XXXXXXXXX ফরম্যাট ব্যবহার করুন।";
-      } else if (err.code === "auth/too-many-requests") {
-        errorMsg = "খুব বেশি অনুরোধ। কয়েক মিনিট পরে চেষ্টা করুন।";
-      } else if (err.code === "auth/operation-not-supported-in-this-environment") {
-        errorMsg = "এই পরিবেশে Firebase ফোন অথেন্টিকেশন সমর্থিত নয়।";
-      }
-      setError(errorMsg);
+      setError(errorMessage(err, "ওটিপি পাঠানো যায় নি। পরে চেষ্টা করুন।"));
     } finally {
       setLoading(false);
     }
@@ -115,22 +103,20 @@ export default function Login() {
   async function handleVerifyOtp(e) {
     e.preventDefault();
     setError("");
-    setSuccess("");
-
     if (!confirmationResult) {
-      return setError("প্রথমে OTP পান এবং তারপর যাচাই করুন।");
+      setError("অনুগ্রহ করে প্রথমে ওটিপি পাঠান।");
+      return;
     }
     if (!otp) {
-      return setError("অনুগ্রহ করে OTP কোডটি লিখুন।");
+      setError("ওটিপি লিখুন।");
+      return;
     }
-
     try {
       setLoading(true);
       await confirmationResult.confirm(otp);
-      navigate("/profile");
+      navigate("/");
     } catch (err) {
-      console.error(err);
-      setError("OTP যাচাই ব্যর্থ হয়েছে। সঠিক কোড লিখুন।");
+      setError(errorMessage(err, "ওটিপি যাচাই ব্যর্থ হয়েছে।"));
     } finally {
       setLoading(false);
     }
@@ -140,26 +126,16 @@ export default function Login() {
     e.preventDefault();
     setError("");
     setSuccess("");
-
     if (!email || !password) {
-      return setError("ইমেইল এবং পাসওয়ার্ড উভয়ই প্রয়োজন।");
+      setError("ইমেইল ও পাসওয়ার্ড দিন।");
+      return;
     }
-
     try {
       setLoading(true);
-      await signInWithEmailAndPassword(auth, email, password);
-      navigate("/profile");
+      await login(email, password);
+      navigate("/");
     } catch (err) {
-      console.error(err);
-      let message = "লগইন ব্যর্থ হয়েছে। ইমেইল বা পাসওয়ার্ড পরীক্ষা করুন।";
-      if (err.code === "auth/user-not-found") {
-        message = "এই ইমেইল ঠিকানায় কোনো অ্যাকাউন্ট নেই।";
-      } else if (err.code === "auth/wrong-password") {
-        message = "ভুল পাসওয়ার্ড। আবার চেষ্টা করুন।";
-      } else if (err.code === "auth/invalid-email") {
-        message = "সঠিক ইমেইল ঠিকানা লিখুন।";
-      }
-      setError(message);
+      setError(errorMessage(err, err.message || "লগইন ব্যর্থ হয়েছে।"));
     } finally {
       setLoading(false);
     }
@@ -168,161 +144,149 @@ export default function Login() {
   async function handleGoogleSignIn() {
     setError("");
     setSuccess("");
-
     try {
       setLoading(true);
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      navigate("/profile");
+      await signInWithPopup(auth, new GoogleAuthProvider());
+      navigate("/");
     } catch (err) {
-      console.error(err);
-      setError("Google সাইন-ইন ব্যর্থ হয়েছে। পরে আবার চেষ্টা করুন।");
+      setError(errorMessage(err, "গুগল লগইন ব্যর্থ হয়েছে।"));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleReset(e) {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    if (!resetEmail) {
+      setError("রিসেটের জন্য ইমেইল দিন।");
+      return;
+    }
+    try {
+      setLoading(true);
+      const res = await resetPassword(resetEmail);
+      if (res.ok) {
+        setSuccess(res.message || "রিসেট ইমেইল পাঠানো হয়েছে।");
+        if (res.simulated) {
+          setResetStep(2);
+          setSuccess(res.message);
+        }
+      } else {
+        setError(res.message || "রিসেট ব্যর্থ হয়েছে।");
+      }
+    } catch (err) {
+      setError(errorMessage(err, err.message || "রিসেট ব্যর্থ হয়েছে।"));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleConfirmReset(e) {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    if (!resetCode || !newPassword || !confirmNewPassword) {
+      setError("সব ক্ষেত্র পূরণ করুন।");
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setError("নতুন পাসওয়ার্ড মিলছে না।");
+      return;
+    }
+    try {
+      setLoading(true);
+      const res = await confirmResetCode(resetEmail, resetCode, newPassword);
+      if (res.ok) {
+        setSuccess(res.message || "পাসওয়ার্ড সফলভাবে রিসেট হয়েছে।");
+        setShowReset(false);
+        setResetStep(1);
+      } else {
+        setError(res.message || "রিসেট ব্যর্থ হয়েছে।");
+      }
+    } catch (err) {
+      setError(errorMessage(err, err.message || "রিসেট ব্যর্থ হয়েছে।"));
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="scroll-area" style={{ background: "var(--bg)" }}>
-      <div className="login-brand">
-        <div className="login-logo">💚</div>
-        <div className="login-name">শুরক্ষা AI</div>
-        <div className="login-sub">
-          নিরাপদভাবে আপনার অ্যাকাউন্টে প্রবেশ করুন — ফোন বা ইমেইল দিয়ে।
+    <div className="auth-page">
+      <div className="auth-card">
+        <div className="login-brand">
+          <div className="login-logo">💚</div>
+          <div className="login-name">শুরক্ষা AI</div>
+          <div className="login-sub">আপনার স্মার্ট স্বাস্থ্য সহকারী</div>
         </div>
-      </div>
 
-      <div className="auth-tabs">
-        <button
-          type="button"
-          className={`auth-tab ${authMethod === "phone" ? "active" : ""}`}
-          onClick={() => switchAuthMethod("phone")}
-        >
-          ফোন লগইন
-        </button>
-        <button
-          type="button"
-          className={`auth-tab ${authMethod === "email" ? "active" : ""}`}
-          onClick={() => switchAuthMethod("email")}
-        >
-          ইমেইল লগইন
-        </button>
-      </div>
-
-      <div className="form-body">
-        {error && (
-          <div style={{
-            color: "var(--red-dark)",
-            background: "var(--red-light)",
-            border: "1px solid var(--red-border)",
-            padding: "8px 10px",
-            borderRadius: "var(--r-xs)",
-            fontSize: "11px",
-            fontWeight: "600",
-            textAlign: "center"
-          }}>
-            {error}
-          </div>
-        )}
-
-        {success && (
-          <div style={{
-            color: "var(--green-dark)",
-            background: "var(--green-light)",
-            border: "1px solid var(--green-border)",
-            padding: "8px 10px",
-            borderRadius: "var(--r-xs)",
-            fontSize: "11px",
-            fontWeight: "600",
-            textAlign: "center"
-          }}>
-            {success}
-          </div>
-        )}
-
-        <div className="auth-card-note">
-          {authMethod === "phone"
-            ? "ধাপে ধাপে ফোন নম্বর দিন, OTP নিন, তারপর চালিয়ে যান।"
-            : "ইমেইল এবং পাসওয়ার্ড দিয়ে দ্রুত লগইন করুন কিংবা Google দিয়ে এক ক্লিকে প্রবেশ করুন।"}
+        <div className="auth-tabs">
+          <button
+            className={authMethod === "phone" ? "auth-tab active" : "auth-tab"}
+            onClick={() => switchAuthMethod("phone")}
+          >
+            ফোন ওটিপি
+          </button>
+          <button
+            className={authMethod === "email" ? "auth-tab active" : "auth-tab"}
+            onClick={() => switchAuthMethod("email")}
+          >
+            ইমেইল
+          </button>
         </div>
+
+        {error && <div className="auth-error">{error}</div>}
+        {success && <div className="auth-success">{success}</div>}
+
+        <div id="recaptcha-container"></div>
 
         {authMethod === "phone" ? (
           <>
-            <form onSubmit={step === 1 ? handleSendOtp : handleVerifyOtp} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-              <div className="form-group">
-                <label className="flabel">📱 মোবাইল নম্বর</label>
-                <div className="finput-wrap">
-                  <div className="fi-left">📞</div>
-                  <input
-                    type="tel"
-                    className="finput"
-                    placeholder="+8801XXXXXXXXX"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    required
-                    disabled={step === 2}
-                  />
-                </div>
-              </div>
-
-              {step === 2 && (
+            {step === 1 ? (
+              <form onSubmit={handleSendOtp} className="auth-form">
                 <div className="form-group">
-                  <label className="flabel">🔐 OTP কোড</label>
+                  <label className="flabel">📱 ফোন নম্বর</label>
                   <div className="finput-wrap">
-                    <div className="fi-left">⏳</div>
+                    <div className="fi-left">+88</div>
                     <input
-                      type="text"
+                      type="tel"
                       className="finput"
-                      placeholder="৬ ডিজিটের কোড"
-                      value={otp}
-                      onChange={(e) => setOtp(e.target.value)}
+                      placeholder="01XXXXXXXXX"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
                       required
                     />
                   </div>
                 </div>
-              )}
-
-              <button type="submit" className="auth-btn-primary" disabled={loading}>
-                {loading
-                  ? step === 1
-                    ? "OTP পাঠানো হচ্ছে..."
-                    : "OTP যাচাই করা হচ্ছে..."
-                  : step === 1
-                  ? "OTP পাঠান"
-                  : "লগইন করুন"}
-              </button>
-            </form>
-
-            <div id="recaptcha-container" style={{ marginTop: "16px" }}></div>
-
-            {step === 2 && (
-              <button
-                type="button"
-                className="auth-btn-primary"
-                style={{ background: "#f3f4f6", color: "#111" }}
-                onClick={() => {
-                  setStep(1);
-                  setOtp("");
-                  setError("");
-                  setSuccess("");
-                  setConfirmationResult(null);
-                  if (window.recaptchaVerifier) {
-                    window.recaptchaVerifier.clear();
-                    window.recaptchaVerifier = null;
-                  }
-                }}
-              >
-                ← আগে ফিরে যান
-              </button>
+                <button type="submit" className="auth-btn-primary" disabled={loading}>
+                  {loading ? "ওটিপি পাঠানো হচ্ছে..." : "ওটিপি পাঠান"}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleVerifyOtp} className="auth-form">
+                <div className="form-group">
+                  <label className="flabel">🔑 ওটিপি লিখুন</label>
+                  <input
+                    type="text"
+                    className="finput"
+                    placeholder="৬ অঙ্কের ওটিপি"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    required
+                  />
+                </div>
+                <button type="submit" className="auth-btn-primary" disabled={loading}>
+                  {loading ? "যাচাই করা হচ্ছে..." : "লগইন করুন"}
+                </button>
+              </form>
             )}
           </>
         ) : (
           <>
-            <form onSubmit={handleEmailLogin} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-              <div className="form-group">
-                <label className="flabel">📧 ইমেইল</label>
-                <div className="finput-wrap">
-                  <div className="fi-left">✉️</div>
+            {!showReset ? (
+              <form onSubmit={handleEmailLogin} className="auth-form">
+                <div className="form-group">
+                  <label className="flabel">📧 ইমেইল</label>
                   <input
                     type="email"
                     className="finput"
@@ -332,39 +296,107 @@ export default function Login() {
                     required
                   />
                 </div>
-              </div>
-
-              <div className="form-group">
-                <label className="flabel">🔐 পাসওয়ার্ড</label>
-                <div className="finput-wrap">
-                  <div className="fi-left">🔒</div>
+                <div className="form-group">
+                  <label className="flabel">🔐 পাসওয়ার্ড</label>
+                  <div className="finput-wrap">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      className="finput"
+                      placeholder="পাসওয়ার্ড"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                    <div
+                      className="fi-right"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? "🙈" : "👁️"}
+                    </div>
+                  </div>
+                </div>
+                <div className="link-row">
+                  <button type="button" className="link-text btn-reset" onClick={() => setShowReset(true)}>
+                    পাসওয়ার্ড ভুলে গেছেন?
+                  </button>
+                </div>
+                <button type="submit" className="auth-btn-primary" disabled={loading}>
+                  {loading ? "লগইন করা হচ্ছে..." : "ইমেইল দিয়ে লগইন"}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={resetStep === 1 ? handleReset : handleConfirmReset} className="auth-form">
+                <div className="form-group">
+                  <label className="flabel">📧 রিসেট ইমেইল</label>
                   <input
-                    type="password"
+                    type="email"
                     className="finput"
-                    placeholder="গোপন পাসওয়ার্ড"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="you@gmail.com"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
                     required
                   />
                 </div>
-              </div>
-
-              <button type="submit" className="auth-btn-primary" disabled={loading}>
-                {loading ? "লগইন করা হচ্ছে..." : "ইমেইল দিয়ে লগইন করুন"}
-              </button>
-            </form>
-
-            <button
-              type="button"
-              className="auth-btn-primary"
-              style={{ marginTop: "10px", background: "#4285F4", color: "white" }}
-              onClick={handleGoogleSignIn}
-              disabled={loading}
-            >
-              {loading ? "প্রসেস করা হচ্ছে..." : "Google দিয়ে চালিয়ে যান"}
-            </button>
+                {resetStep === 2 && (
+                  <>
+                    <div className="form-group">
+                      <label className="flabel">🔑 রিসেট কোড</label>
+                      <input
+                        type="text"
+                        className="finput"
+                        placeholder="৬ অঙ্কের কোড"
+                        value={resetCode}
+                        onChange={(e) => setResetCode(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="flabel">নতুন পাসওয়ার্ড</label>
+                      <input
+                        type="password"
+                        className="finput"
+                        placeholder="নতুন পাসওয়ার্ড"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="flabel">নতুন পাসওয়ার্ড নিশ্চিত করুন</label>
+                      <input
+                        type="password"
+                        className="finput"
+                        placeholder="পাসওয়ার্ড পুনরায় লিখুন"
+                        value={confirmNewPassword}
+                        onChange={(e) => setConfirmNewPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+                  </>
+                )}
+                <button type="submit" className="auth-btn-primary" disabled={loading}>
+                  {loading ? "প্রক্রিয়া চলছে..." : resetStep === 1 ? "রিসেট লিঙ্ক পাঠান" : "নতুন পাসওয়ার্ড সেভ করুন"}
+                </button>
+                <div className="link-row">
+                  <button type="button" className="link-text btn-reset" onClick={() => {
+                    setShowReset(false);
+                    setResetStep(1);
+                    setError("");
+                    setSuccess("");
+                  }}>
+                    ফিরে যান
+                  </button>
+                </div>
+              </form>
+            )}
           </>
         )}
+
+        <div className="auth-divider">অথবা</div>
+
+        <button type="button" className="auth-btn-secondary" onClick={handleGoogleSignIn} disabled={loading}>
+          {loading ? "প্রসেস হচ্ছে..." : "গুগল দিয়ে চালু করুন"}
+        </button>
 
         <div className="link-row">
           নতুন? <Link to="/register" className="link-text">নিবন্ধন করুন</Link>
