@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { db } from "../firebase/config";
-import { doc, getDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { getUserProfile, logSOS } from "../firebase/dbService";
 
 export default function Home() {
   const { currentUser } = useAuth();
@@ -12,27 +11,12 @@ export default function Home() {
 
   useEffect(() => {
     async function fetchProfile() {
-      if (currentUser) {
-        let userProfile = null;
-        try {
-          const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-          if (userDoc.exists()) {
-            userProfile = userDoc.data();
-          }
-        } catch (error) {
-          console.warn("Firestore profile fetch failed, using local fallback:", error.message);
-        }
-
-        if (!userProfile) {
-          const localProf = localStorage.getItem("mock_user_profile");
-          if (localProf) {
-            userProfile = JSON.parse(localProf);
-          } else {
-            userProfile = { name: "রাহেলা বেগম" };
-          }
-        }
-        setProfile(userProfile);
+      if (!currentUser) return;
+      let userProfile = await getUserProfile(currentUser.uid);
+      if (!userProfile) {
+        userProfile = { name: currentUser.email?.split("@")[0] || "অতিথি" };
       }
+      setProfile(userProfile);
     }
     fetchProfile();
   }, [currentUser]);
@@ -49,25 +33,20 @@ export default function Home() {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
-        const sosPayload = {
-          userId: currentUser?.uid || "guest",
-          userName: profile?.name || "Anonymous Guest",
-          lat: latitude,
-          lng: longitude
-        };
+        const result = await logSOS(
+          currentUser?.uid || "guest",
+          { lat: latitude, lng: longitude },
+          { userName: profile?.name || "Anonymous Guest" }
+        );
 
-        try {
-          await addDoc(collection(db, "sos"), {
-            ...sosPayload,
-            createdAt: serverTimestamp()
-          });
-          setSosStatus("SOS সফলভাবে পাঠানো হয়েছে! সাহায্য আসছে।");
-        } catch (err) {
-          console.warn("Firestore SOS write failed, saving locally:", err.message);
-          let list = JSON.parse(localStorage.getItem("mock_sos_signals") || "[]");
-          list.push({ ...sosPayload, createdAt: new Date().toISOString() });
-          localStorage.setItem("mock_sos_signals", JSON.stringify(list));
-          setSosStatus("SOS সফলভাবে পাঠানো হয়েছে! (লোকাল ডেমো মোড)");
+        if (result?.ok) {
+          setSosStatus(
+            result.source === "firestore"
+              ? "SOS সফলভাবে পাঠানো হয়েছে! সাহায্য আসছে।"
+              : "SOS সফলভাবে পাঠানো হয়েছে! (লোকাল ডেমো মোড)"
+          );
+        } else {
+          setSosStatus("SOS পাঠানো যায়নি। আবার চেষ্টা করুন।");
         }
 
         setTimeout(() => {
@@ -77,7 +56,7 @@ export default function Home() {
       },
       (error) => {
         console.error("GPS error:", error);
-        setSosStatus("অবস্থান পাওয়া যায়নি। জিপিএস চালু করুন।");
+        setSosStatus("অবস্থান পাওয়া যায়নি। জিপিএস চালু করুন।");
         setSendingSos(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
@@ -98,7 +77,7 @@ export default function Home() {
         <div className="alert-bar-icon">⚠️</div>
         <div>
           <div className="alert-bar-title">বন্যার সতর্কতা — সিলেট</div>
-          <div className="alert-bar-sub">আজকের লাইভ আপডেট ও আশ্রয়কেন্দ্র দেখুন</div>
+          <div className="alert-bar-sub">আজকের লাইভ আপডেট ও আশ্রয়কেন্দ্র দেখুন</div>
         </div>
         <div className="alert-bar-arrow">›</div>
       </Link>
