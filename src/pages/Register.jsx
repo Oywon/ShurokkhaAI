@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { db } from "../firebase/config";
-import { doc, setDoc } from "firebase/firestore";
+import { saveUserProfile, errorMessage } from "../firebase/dbService";
 import { useNavigate, Link } from "react-router-dom";
 
 export default function Register() {
@@ -19,7 +18,7 @@ export default function Register() {
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { signup } = useAuth();
+  const { signup, updateAuthProfile } = useAuth();
   const navigate = useNavigate();
 
   const bloodGroups = ["A+", "A−", "B+", "B−", "AB+", "AB−", "O+", "O−"];
@@ -64,22 +63,19 @@ export default function Register() {
         location
       };
 
-      // 2. Save Profile details to Firestore or LocalStorage
+      // 2. Update Firebase Auth display name (best-effort)
       try {
-        await setDoc(doc(db, "users", user.uid), {
-          ...profileData,
-          createdAt: new Date()
-        });
-      } catch (dbErr) {
-        console.warn("Firestore write failed, saving profile to LocalStorage:", dbErr.message);
-        localStorage.setItem("mock_user_profile", JSON.stringify(profileData));
-      }
+        await updateAuthProfile({ displayName: name });
+      } catch (e) { /* mock-auth or no current user — non-fatal */ }
+
+      // 3. Save profile via dbService (Firestore + localStorage fallback)
+      await saveUserProfile(user.uid, profileData);
 
       // Redirect to Profile
       navigate("/profile");
     } catch (err) {
       console.error(err);
-      setError("নিবন্ধন ব্যর্থ হয়েছে। ইমেলটি ইতিমধ্যে ব্যবহার করা হতে পারে।");
+      setError(errorMessage(err, "নিবন্ধন ব্যর্থ হয়েছে। ইমেইলটি ইতিমধ্যে ব্যবহার করা হতে পারে।"));
     } finally {
       setLoading(false);
     }

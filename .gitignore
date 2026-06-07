@@ -1,0 +1,59 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+build/
+dist/
+.next/
+out/
+
+# Testing
+coverage/
+.nyc_output/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+logs/
+*.log
+
+# Environment files (DO NOT commit secrets)
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+.env.*.local
+server/.env
+server/.env.local
+server/.env.development
+server/.env.production
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Misc
+.cache/
+.parcel-cache/
+.eslintcache
+*.tsbuildinfo
+
+.env
+server/.env
+
+
+.puku/
+node_modules/
+.env
+
