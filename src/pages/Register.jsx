@@ -1,223 +1,404 @@
-import React, { useState } from "react";
+﻿import React, { useEffect, useState } from "react";
+import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { saveUserProfile, errorMessage } from "../firebase/dbService";
-import { useNavigate, Link } from "react-router-dom";
+import { auth } from "../firebase/config";
+
+function normalizePhoneNumber(phone) {
+  const digits = (phone || "").replace(/[^0-9]/g, "");
+  if (digits.length === 11 && digits.startsWith("01")) {
+    return "+88" + digits;
+  }
+  if (digits.length === 10 && digits.startsWith("1")) {
+    return "+88" + digits;
+  }
+  return phone;
+}
 
 export default function Register() {
+  const [authMethod, setAuthMethod] = useState("phone");
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
-  const [name, setName] = useState("");
-  const [age, setAge] = useState("");
-  const [phone, setPhone] = useState("");
-  const [bloodGroup, setBloodGroup] = useState("A+");
-  const [location, setLocation] = useState("ঢাকা — মিরপুর");
-  const [consent, setConsent] = useState(true);
-
+  const [bloodGroup, setBloodGroup] = useState("O+");
+  const [location, setLocation] = useState("");
+  const [consent, setConsent] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [confirmationResult, setConfirmationResult] = useState(null);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const bloodGroups = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
   const { signup, updateAuthProfile } = useAuth();
   const navigate = useNavigate();
 
-  const bloodGroups = ["A+", "A−", "B+", "B−", "AB+", "AB−", "O+", "O−"];
+  useEffect(() => {
+    return () => {
+      if (window.registerRecaptcha) {
+        window.registerRecaptcha.clear();
+      }
+    };
+  }, []);
+
+  function setupRecaptcha() {
+    if (window.registerRecaptcha) {
+      window.registerRecaptcha.clear();
+    }
+    window.registerRecaptcha = new RecaptchaVerifier(
+      "register-recaptcha-container",
+      { size: "invisible", callback: () => {} },
+      auth
+    );
+  }
+
+  function switchRegisterMethod(method) {
+    setAuthMethod(method);
+    setStep(1);
+    setError("");
+    setSuccess("");
+    setConfirmationResult(null);
+    setOtp("");
+  }
 
   async function handleNextStep(e) {
     e.preventDefault();
-    if (!email || !password || !confirmPassword) {
-      return setError("সবগুলো তথ্য পূরণ করুন।");
+    setError("");
+    setSuccess("");
+    const normalizedPhone = normalizePhoneNumber(phone);
+
+    if (!name || !email || !password || !confirmPassword || !location) {
+      setError("সব ক্ষেত্র পূরণ করুন।");
+      return;
     }
     if (password !== confirmPassword) {
-      return setError("পাসওয়ার্ড দুটি মিলছে না।");
+      setError("পাসওয়ার্ড মিলছে না।");
+      return;
     }
-    if (password.length < 6) {
-      return setError("পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।");
+    if (!consent) {
+      setError("গোপনীয়তা নীতি ও শর্তাবলী মেনে নিন।");
+      return;
     }
-    setError("");
-    setStep(2);
+
+    if (authMethod === "phone") {
+      if (!normalizedPhone || !/^\+?[0-9]{10,15}$/.test(normalizedPhone)) {
+        setError("সঠিক ফোন নম্বর দিন (যেমন +8801xxxxxxxxx)।");
+        return;
+      }
+      try {
+        setLoading(true);
+        setupRecaptcha();
+        const appVerifier = window.registerRecaptcha;
+        const confirmation = await signInWithPhoneNumber(auth, normalizedPhone, appVerifier);
+        setConfirmationResult(confirmation);
+        setStep(2);
+        setSuccess("ওটিপি পাঠানো হয়েছে।");
+      } catch (err) {
+        setError(errorMessage(err, "ওটিপি পাঠানো যায় নি।"));
+      } finally {
+        setLoading(false);
+      }
+    }
   }
 
   async function handleRegister(e) {
     e.preventDefault();
-    if (!name || !age || !phone || !location) {
-      return setError("সবগুলো প্রোফাইল তথ্য পূরণ করুন।");
+    setError("");
+    setSuccess("");
+    if (!confirmationResult || !otp) {
+      setError("ওটিপি দিন এবং আবার চেষ্টা করুন।");
+      return;
     }
-    if (!consent) {
-      return setError("আপনাকে গোপনীয়তা নীতিতে সম্মতি জানাতে হবে।");
-    }
-
     try {
-      setError("");
       setLoading(true);
-      
-      // 1. Create Firebase Auth user
-      const userCredential = await signup(email, password);
-      const user = userCredential.user;
-
-      const profileData = {
+      await confirmationResult.confirm(otp);
+      const profile = {
         name,
-        age: parseInt(age, 10),
+        email,
         phone,
         bloodGroup,
-        location
+        location,
+        consent,
+        createdAt: new Date().toISOString(),
       };
-
-      // 2. Update Firebase Auth display name (best-effort)
-      try {
+      const user = auth.currentUser;
+      if (user) {
+        await saveUserProfile(user.uid, profile);
         await updateAuthProfile({ displayName: name });
-      } catch (e) { /* mock-auth or no current user — non-fatal */ }
-
-      // 3. Save profile via dbService (Firestore + localStorage fallback)
-      await saveUserProfile(user.uid, profileData);
-
-      // Redirect to Profile
-      navigate("/profile");
+      }
+      setSuccess("নিবন্ধন সফল হয়েছে। সূচিপত্রে নিয়ে যাওয়া হচ্ছে...");
+      navigate("/");
     } catch (err) {
-      console.error(err);
-      setError(errorMessage(err, "নিবন্ধন ব্যর্থ হয়েছে। ইমেইলটি ইতিমধ্যে ব্যবহার করা হতে পারে।"));
+      setError(errorMessage(err, err.message || "নিবন্ধন ব্যর্থ হয়েছে।"));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleEmailRegister(e) {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    if (!name || !email || !password || !confirmPassword || !location) {
+      setError("সব ক্ষেত্র পূরণ করুন।");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("পাসওয়ার্ড মিলছে না।");
+      return;
+    }
+    if (!consent) {
+      setError("গোপনীয়তা নীতি ও শর্তাবলী মেনে নিন।");
+      return;
+    }
+    try {
+      setLoading(true);
+      const res = await signup(email, password);
+      const uid = res?.user?.uid;
+      if (auth.currentUser) {
+        await updateAuthProfile({ displayName: name });
+      }
+      const profile = {
+        name,
+        email,
+        phone,
+        bloodGroup,
+        location,
+        consent,
+        createdAt: new Date().toISOString(),
+      };
+      if (uid) {
+        await saveUserProfile(uid, profile);
+      }
+      setSuccess("নিবন্ধন সফল হয়েছে। স্বাগতম!");
+      navigate("/");
+    } catch (err) {
+      setError(errorMessage(err, err.message || "নিবন্ধন ব্যর্থ হয়েছে।"));
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="scroll-area" style={{ background: "var(--bg)" }}>
-      {/* Brand Header */}
-      <div className="reg-brand">
-        <div className="reg-brand-title">নতুন অ্যাকাউন্ট তৈরি করুন</div>
-        <div className="reg-brand-sub">মাত্র কয়েকটি তথ্য দিন</div>
-      </div>
+    <div className="auth-page">
+      <div className="auth-card">
+        <div className="login-brand">
+          <div className="login-logo">💚</div>
+          <div className="login-name">শুরক্ষা AI</div>
+          <div className="login-sub">নিবন্ধনের মাধ্যমে শুরু করুন</div>
+        </div>
 
-      {/* Stepper Dots Indicator */}
-      <div className="step-dots">
-        <div className={`sdot ${step === 1 ? "active" : "done"}`}></div>
-        <div className={`sdot ${step === 2 ? "active" : "idle"}`}></div>
-      </div>
+        <div className="auth-tabs">
+          <button
+            className={authMethod === "phone" ? "auth-tab active" : "auth-tab"}
+            onClick={() => switchRegisterMethod("phone")}
+          >
+            ফোন নিবন্ধন
+          </button>
+          <button
+            className={authMethod === "email" ? "auth-tab active" : "auth-tab"}
+            onClick={() => switchRegisterMethod("email")}
+          >
+            ইমেইল নিবন্ধন
+          </button>
+        </div>
 
-      <div className="form-body" style={{ paddingTop: "12px" }}>
-        {error && (
-          <div style={{
-            color: "var(--red-dark)", 
-            background: "var(--red-light)", 
-            border: "1px solid var(--red-border)", 
-            padding: "8px 10px", 
-            borderRadius: "var(--r-xs)", 
-            fontSize: "11px",
-            fontWeight: "600",
-            textAlign: "center"
-          }}>
-            {error}
-          </div>
-        )}
+        {error && <div className="auth-error">{error}</div>}
+        {success && <div className="auth-success">{success}</div>}
 
-        {step === 1 && (
-          <form onSubmit={handleNextStep} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div id="register-recaptcha-container"></div>
+
+        {authMethod === "phone" ? (
+          <>
+            {step === 1 ? (
+              <form onSubmit={handleNextStep} className="auth-form">
+                <div className="form-group">
+                  <label className="flabel">👤 পূর্ণ নাম</label>
+                  <input
+                    type="text"
+                    className="finput"
+                    placeholder="আপনার নাম"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="flabel">📧 ইমেইল</label>
+                  <input
+                    type="email"
+                    className="finput"
+                    placeholder="you@gmail.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="flabel">📱 ফোন নম্বর</label>
+                  <div className="finput-wrap">
+                    <div className="fi-left">+88</div>
+                    <input
+                      type="tel"
+                      className="finput"
+                      placeholder="01XXXXXXXXX"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="frow-2">
+                  <div className="form-group">
+                    <label className="flabel">🔐 পাসওয়ার্ড</label>
+                    <input
+                      type="password"
+                      className="finput"
+                      placeholder="পাসওয়ার্ড"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="flabel">🔐 পাসওয়ার্ড নিশ্চিত করুন</label>
+                    <input
+                      type="password"
+                      className="finput"
+                      placeholder="পাসওয়ার্ড পুনরায় লিখুন"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label className="flabel">রক্তের গ্রুপ</label>
+                  <div className="bg-chips-wrap">
+                    {bloodGroups.map((bg) => (
+                      <div
+                        key={bg}
+                        className={`bg-chip ${bloodGroup === bg ? "sel" : ""}`}
+                        onClick={() => setBloodGroup(bg)}
+                      >
+                        {bg}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label className="flabel">বিভাগ / জেলা</label>
+                  <input
+                    type="text"
+                    className="finput"
+                    placeholder="ঢাকা — মিরপুর"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="consent-box" onClick={() => setConsent(!consent)}>
+                  <div className={consent ? "checkbox-done" : "checkbox-empty"}>
+                    {consent ? "✓" : ""}
+                  </div>
+                  <div className="consent-text">
+                    আমি <span className="consent-link">গোপনীয়তা নীতি</span> ও <span className="consent-link">শর্তাবলী</span> পড়েছি এবং সম্মতি দিচ্ছি
+                  </div>
+                </div>
+                <button type="submit" className="auth-btn-primary" disabled={loading}>
+                  {loading ? "ওটিপি পাঠানো হচ্ছে..." : "ওটিপি পাঠান"}
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleRegister} className="auth-form">
+                <div className="form-group">
+                  <label className="flabel">🔑 ওটিপি লিখুন</label>
+                  <input
+                    type="text"
+                    className="finput"
+                    placeholder="৬ অঙ্কের ওটিপি"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    required
+                  />
+                </div>
+                <button type="submit" className="auth-btn-primary" disabled={loading}>
+                  {loading ? "নিবন্ধন করছে..." : "নিবন্ধন সম্পন্ন করুন"}
+                </button>
+              </form>
+            )}
+          </>
+        ) : (
+          <form onSubmit={handleEmailRegister} className="auth-form">
             <div className="form-group">
-              <label className="flabel">📧 ইমেইল ঠিকানা</label>
+              <label className="flabel">👤 পূর্ণ নাম</label>
+              <input
+                type="text"
+                className="finput"
+                placeholder="আপনার নাম"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="flabel">📧 ইমেইল</label>
+              <input
+                type="email"
+                className="finput"
+                placeholder="you@gmail.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label className="flabel">📱 ফোন নম্বর</label>
               <div className="finput-wrap">
-                <div className="fi-left">✉️</div>
-                <input 
-                  type="email" 
-                  className="finput" 
-                  placeholder="name@example.com" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
+                <div className="fi-left">+88</div>
+                <input
+                  type="tel"
+                  className="finput"
+                  placeholder="01XXXXXXXXX"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
                 />
               </div>
             </div>
-
-            <div className="form-group">
-              <label className="flabel">🔒 পাসওয়ার্ড</label>
-              <div className="finput-wrap">
-                <div className="fi-left">🔒</div>
-                <input 
-                  type="password" 
-                  className="finput" 
-                  placeholder="কমপক্ষে ৬ অক্ষরের পাসওয়ার্ড" 
+            <div className="frow-2">
+              <div className="form-group">
+                <label className="flabel">🔐 পাসওয়ার্ড</label>
+                <input
+                  type="password"
+                  className="finput"
+                  placeholder="পাসওয়ার্ড"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
               </div>
-            </div>
-
-            <div className="form-group">
-              <label className="flabel">🔒 পাসওয়ার্ড নিশ্চিত করুন</label>
-              <div className="finput-wrap">
-                <div className="fi-left">✓</div>
-                <input 
-                  type="password" 
-                  className="finput" 
-                  placeholder="পুনরায় পাসওয়ার্ডটি লিখুন" 
+              <div className="form-group">
+                <label className="flabel">🔐 পাসওয়ার্ড নিশ্চিত করুন</label>
+                <input
+                  type="password"
+                  className="finput"
+                  placeholder="পাসওয়ার্ড পুনরায় লিখুন"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
                 />
               </div>
             </div>
-
-            <button type="submit" className="auth-btn-primary">
-              পরবর্তী ধাপ →
-            </button>
-          </form>
-        )}
-
-        {step === 2 && (
-          <form onSubmit={handleRegister} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            <div className="frow-2">
-              <div className="form-group">
-                <label className="flabel">পুরো নাম</label>
-                <div className="finput-wrap">
-                  <div className="fi-left">👤</div>
-                  <input 
-                    type="text" 
-                    className="finput no-icon" 
-                    placeholder="আপনার নাম" 
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-              <div className="form-group">
-                <label className="flabel">বয়স</label>
-                <div className="finput-wrap">
-                  <div className="fi-left">🎂</div>
-                  <input 
-                    type="number" 
-                    className="finput no-icon" 
-                    placeholder="বছর" 
-                    value={age}
-                    onChange={(e) => setAge(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label className="flabel">মোবাইল নম্বর</label>
-              <div className="finput-wrap">
-                <div className="fi-left">📞</div>
-                <input 
-                  type="text" 
-                  className="finput" 
-                  placeholder="+880 1X XXX XXXXX" 
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-
             <div className="form-group">
               <label className="flabel">রক্তের গ্রুপ</label>
               <div className="bg-chips-wrap">
                 {bloodGroups.map((bg) => (
-                  <div 
-                    key={bg} 
+                  <div
+                    key={bg}
                     className={`bg-chip ${bloodGroup === bg ? "sel" : ""}`}
                     onClick={() => setBloodGroup(bg)}
                   >
@@ -226,22 +407,17 @@ export default function Register() {
                 ))}
               </div>
             </div>
-
             <div className="form-group">
               <label className="flabel">বিভাগ / জেলা</label>
-              <div className="finput-wrap">
-                <div className="fi-left">📍</div>
-                <input 
-                  type="text" 
-                  className="finput" 
-                  placeholder="ঢাকা — মিরপুর" 
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  required
-                />
-              </div>
+              <input
+                type="text"
+                className="finput"
+                placeholder="ঢাকা — মিরপুর"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                required
+              />
             </div>
-
             <div className="consent-box" onClick={() => setConsent(!consent)}>
               <div className={consent ? "checkbox-done" : "checkbox-empty"}>
                 {consent ? "✓" : ""}
@@ -250,20 +426,9 @@ export default function Register() {
                 আমি <span className="consent-link">গোপনীয়তা নীতি</span> ও <span className="consent-link">শর্তাবলী</span> পড়েছি এবং সম্মতি দিচ্ছি
               </div>
             </div>
-
-            <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
-              <button 
-                type="button" 
-                className="auth-btn-primary" 
-                style={{ background: "#eee", color: "#111" }}
-                onClick={() => setStep(1)}
-              >
-                ← পেছনে
-              </button>
-              <button type="submit" className="auth-btn-primary" disabled={loading}>
-                {loading ? "নিবন্ধন করা হচ্ছে..." : "নিবন্ধন সম্পন্ন করুন"}
-              </button>
-            </div>
+            <button type="submit" className="auth-btn-primary" disabled={loading}>
+              {loading ? "নিবন্ধন করা হচ্ছে..." : "ইমেইল দিয়ে নিবন্ধন করুন"}
+            </button>
           </form>
         )}
 

@@ -100,7 +100,16 @@ Create a `.env` file in the root directory if you want to explicitly connect the
 ### Firebase Database Setup
 The app is pre-configured with a default Firebase database. To link your own Firebase project:
 1. Open the [Firebase Console](https://console.firebase.google.com/) and copy your Web App configuration object.
-2. Open [src/firebase/config.js](file:///g:/project/ShurokkhaAI/src/firebase/config.js) and replace the `firebaseConfig` object credentials (lines 11–19).
+2. Open `src/firebase/config.js` and replace the `firebaseConfig` object credentials.
+
+### Firebase Phone Auth Setup
+1. In Firebase Console, go to **Authentication → Sign-in method**.
+2. Enable the **Phone** sign-in provider.
+3. In **Authentication → Authorized domains**, add your app origin(s):
+   * `http://localhost`
+   * `http://127.0.0.1`
+   * your deployed domain if using a remote host
+4. Ensure your app is served over a valid origin when testing OTP login.
 
 ---
 

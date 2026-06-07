@@ -24,8 +24,21 @@ const app = initializeApp(firebaseConfig);
 let analytics;
 try { analytics = getAnalytics(app); } catch (e) { /* ignore if unavailable in dev */ }
 
-// Exports for app
+// Configure Auth
 export const auth = getAuth(app);
+
+// For development/testing: Disable app verification to allow OTP testing without proper domain setup
+// Remove this line for production
+if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+  auth.settings.appVerificationDisabledForTesting = true;
+}
+
+// Note: Firebase Phone Authentication requires the Phone provider to be enabled in
+// Firebase Console → Authentication → Sign-in method.
+// Also add your app origin under Authorized domains in the Firebase Console.
+// For local development, add http://localhost and http://127.0.0.1.
+
+// Exports for app
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 export default app;
