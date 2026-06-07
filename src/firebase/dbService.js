@@ -56,6 +56,12 @@ export function errorMessage(err, fallback = "একটি সমস্যা �
       return "এই অ্যাকাউন্ট নিষ্ক্রিয় করা হয়েছে।";
     case "auth/too-many-requests":
       return "অনেকবার চেষ্টা হয়েছে। কিছুক্ষণ পর আবার চেষ্টা করুন।";
+    case "auth/popup-closed-by-user":
+      return "গুগল লগইন বাতিল করা হয়েছে। পুনরায় চেষ্টা করুন।";
+    case "auth/cancelled-popup-request":
+      return "পপআপ আটকা পড়েছে বা বাতিল করা হয়েছে। পুনরায় চেষ্টা করুন।";
+    case "auth/popup-blocked":
+      return "পপআপ ব্লক করা হয়েছে, অনুগ্রহ করে ব্রাউজার সেটিংসে পপআপ চালু করুন।";
     case "auth/network-request-failed":
       return "ইন্টারনেট সংযোগ পাওয়া যাচ্ছে না।";
     case "auth/email-already-in-use":
