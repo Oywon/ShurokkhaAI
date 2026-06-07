@@ -172,6 +172,9 @@ export default function Profile() {
         <div className="profile-age">
           বয়স: {profile?.age || "N/A"} বছর · রক্তের গ্রুপ: {profile?.bloodGroup || "N/A"} · {profile?.location || "বাংলাদেশ"}
         </div>
+        <div className="profile-phone">
+          যোগাযোগ: {currentUser?.email || currentUser?.phoneNumber || profile?.phone || "N/A"}
+        </div>
         <button 
           onClick={handleSignOut} 
           style={{ 

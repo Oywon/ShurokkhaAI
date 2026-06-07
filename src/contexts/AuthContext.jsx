@@ -1,10 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-} from 'firebase/auth';
+import { signOut, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../firebase/config';
 
 const AuthContext = createContext();
@@ -16,30 +11,6 @@ export function useAuth() {
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  async function signup(email, password) {
-    try {
-      return await createUserWithEmailAndPassword(auth, email, password);
-    } catch (err) {
-      console.warn("Firebase Auth signup failed, falling back to Local Mock Auth:", err.message);
-      const mockUser = { uid: "mock_user_123", email };
-      setCurrentUser(mockUser);
-      localStorage.setItem("mock_current_user", JSON.stringify(mockUser));
-      return { user: mockUser };
-    }
-  }
-
-  async function login(email, password) {
-    try {
-      return await signInWithEmailAndPassword(auth, email, password);
-    } catch (err) {
-      console.warn("Firebase Auth login failed, falling back to Local Mock Auth:", err.message);
-      const mockUser = { uid: "mock_user_123", email };
-      setCurrentUser(mockUser);
-      localStorage.setItem("mock_current_user", JSON.stringify(mockUser));
-      return { user: mockUser };
-    }
-  }
 
   async function logout() {
     try {
@@ -79,7 +50,7 @@ export function AuthProvider({ children }) {
     return unsubscribe;
   }, []);
 
-  const value = { currentUser, signup, login, logout };
+  const value = { currentUser, logout };
 
   return (
     <AuthContext.Provider value={value}>
