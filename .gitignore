@@ -48,3 +48,12 @@ desktop.ini
 .parcel-cache/
 .eslintcache
 *.tsbuildinfo
+
+.env
+server/.env
+
+
+.puku/
+node_modules/
+.env
+
