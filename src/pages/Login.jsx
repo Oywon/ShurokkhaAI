@@ -23,6 +23,7 @@ function normalizePhoneNumber(phone) {
 
 export default function Login() {
   const [authMethod, setAuthMethod] = useState("phone");
+  const [step, setStep] = useState(1);
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [confirmationResult, setConfirmationResult] = useState(null);
