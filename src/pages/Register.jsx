@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
@@ -187,7 +187,13 @@ export default function Register() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="login-brand">
-          <div className="login-logo">💚</div>
+          <div className="login-logo">
+            <img 
+              src="/surokkha_ai_logo.PNG" 
+              alt="Shurokkha AI" 
+              style={{ width: "100%", height: "100%", borderRadius: "inherit", objectFit: "contain" }} 
+            />
+          </div>
           <div className="login-name">শুরক্ষা AI</div>
           <div className="login-sub">নিবন্ধনের মাধ্যমে শুরু করুন</div>
         </div>

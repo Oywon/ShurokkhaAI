@@ -1,6 +1,7 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "surokkhaAi",
+  "name": "surokkhaAi - Health Assistant",
+  "description": "আপনার স্মার্ট স্বাস্থ্য সহকারী",
   "icons": [
     {
       "src": "favicon.ico",
@@ -18,8 +19,9 @@
       "sizes": "512x512"
     }
   ],
-  "start_url": ".",
+  "start_url": "/",
   "display": "standalone",
-  "theme_color": "#000000",
+  "orientation": "portrait",
+  "theme_color": "#10b981",
   "background_color": "#ffffff"
 }

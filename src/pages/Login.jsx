@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
@@ -216,7 +216,13 @@ export default function Login() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="login-brand">
-          <div className="login-logo">💚</div>
+          <div className="login-logo">
+            <img 
+              src="/surokkha_ai_logo.PNG" 
+              alt="Shurokkha AI" 
+              style={{ width: "100%", height: "100%", borderRadius: "inherit", objectFit: "contain" }} 
+            />
+          </div>
           <div className="login-name">শুরক্ষা AI</div>
           <div className="login-sub">আপনার স্মার্ট স্বাস্থ্য সহকারী</div>
         </div>

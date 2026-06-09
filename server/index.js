@@ -3,20 +3,125 @@ const cors = require('cors');
 const multer = require('multer');
 require('dotenv').config();
 
+// ---------- Environment configuration ----------
+const PORT = process.env.PORT || 3001;
+const GEMINI_KEY = process.env.GEMINI_API_KEY;
+const OPENWEATHER_KEY = process.env.OPENWEATHER_API_KEY;
+const GROQ_KEY = process.env.GROQ_API_KEY;
+// Select which LLM provider to use (groq or gemini)
+const LLM_PROVIDER = process.env.LLM_PROVIDER || 'groq';
+// Model identifiers for each provider
+const GROQ_MODEL = process.env.GROQ_MODEL || 'qwen/qwen3-32b';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+
 const upload = multer();
 const app = express();
+
+// ---------- Helper to call LLMs ----------
+async function callLLM(messages) {
+  // `messages` is an array of {role, content} objects (OpenAI format)
+  const activeProvider = (process.env.LLM_PROVIDER || LLM_PROVIDER).toLowerCase();
+  const activeGroqModel = process.env.GROQ_MODEL || GROQ_MODEL;
+  const activeGeminiModel = process.env.GEMINI_MODEL || GEMINI_MODEL;
+
+  function formatGeminiBody(msgs) {
+    const systemMsg = msgs.find(m => m.role === 'system');
+    const chatMsgs = msgs.filter(m => m.role !== 'system');
+    const body = {
+      contents: chatMsgs.map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }]
+      })),
+      generationConfig: {
+        temperature: 0.2,
+        maxOutputTokens: 500
+      }
+    };
+    if (systemMsg) {
+      body.systemInstruction = {
+        parts: [{ text: systemMsg.content }]
+      };
+    }
+    return body;
+  }
+
+  function cleanResponse(text) {
+    if (!text) return '';
+    return text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+  }
+
+  if (activeProvider === 'groq') {
+    if (!GROQ_KEY) {
+      throw new Error('GROQ_API_KEY not configured');
+    }
+    const payload = {
+      model: activeGroqModel,
+      messages,
+      temperature: 0.2,
+      max_tokens: 500
+    };
+    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${GROQ_KEY}`
+      },
+      body: JSON.stringify(payload)
+    });
+    if (!resp.ok) {
+      const txt = await resp.text();
+      // Try to parse error JSON to detect model decommissioning
+      let fallback = false;
+      try {
+        const errObj = JSON.parse(txt);
+        if (errObj?.error?.code === 'model_decommissioned') {
+          fallback = true;
+        }
+      } catch (_) {}
+      if (fallback) {
+        console.warn(`Groq model '${activeGroqModel}' decommissioned, falling back to Gemini (${activeGeminiModel})`);
+        // Switch to Gemini for this request
+        const geminiBody = formatGeminiBody(messages);
+        const gemResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${activeGeminiModel}:generateContent?key=${GEMINI_KEY}`,
+          { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(geminiBody) });
+        if (!gemResp.ok) {
+          const gemTxt = await gemResp.text();
+          throw new Error(`Gemini fallback error: ${gemTxt}`);
+        }
+        const gemData = await gemResp.json();
+        return cleanResponse(gemData?.candidates?.[0]?.content?.parts?.[0]?.text);
+      }
+      // If not a decommission error, rethrow original error
+      throw new Error(`Groq API error: ${txt}`);
+    }
+    const data = await resp.json();
+    return cleanResponse(data?.choices?.[0]?.message?.content);
+  } else if (activeProvider === 'gemini') {
+    if (!GEMINI_KEY) {
+      throw new Error('GEMINI_API_KEY not configured');
+    }
+    const geminiBody = formatGeminiBody(messages);
+    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${activeGeminiModel}:generateContent?key=${GEMINI_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(geminiBody)
+    });
+    if (!resp.ok) {
+      const txt = await resp.text();
+      throw new Error(`Gemini API error: ${txt}`);
+    }
+    const data = await resp.json();
+    return cleanResponse(data?.candidates?.[0]?.content?.parts?.[0]?.text);
+  } else {
+    throw new Error(`Unsupported LLM_PROVIDER: ${activeProvider}`);
+  }
+}
+
 app.use(cors());
 app.use(express.json());
 
-const GEMINI_KEY = process.env.GEMINI_API_KEY;
-if (!GEMINI_KEY) {
-  console.warn('Warning: GEMINI_API_KEY is not set. Proxy will return errors until configured.');
-}
 
-const OPENWEATHER_KEY = process.env.OPENWEATHER_API_KEY;
-if (!OPENWEATHER_KEY) {
-  console.warn('Warning: OPENWEATHER_API_KEY is not set. /weather endpoint will return errors until configured.');
-}
+
 
 // ─── Weather API ───────────────────────────────────────────────
 // Returns current weather for a given lat/lng (defaults to Dhaka).
@@ -55,45 +160,49 @@ app.get('/weather', async (req, res) => {
 
 app.post('/analyze', async (req, res) => {
   try {
-    const { text } = req.body || {};
+    const { text, model } = req.body || {};
     if (!text) return res.status(400).json({ error: 'Missing text in body' });
 
-    if (!GEMINI_KEY) return res.status(500).json({ error: 'Server not configured with GEMINI_API_KEY' });
+    const systemInstruction = 'You are a concise medical assistant. Provide short, clear, and safe first-aid style advice. Always respond in Bengali language using native Bengali script (বাংলা হরফ/লিপি).';
 
-    const systemInstruction = 'You are a concise medical assistant. Provide short, clear, and safe first-aid style advice in Bengali when possible.';
-    
-    const body = {
-      contents: [
-        {
-          role: 'user',
-          parts: [
-            { text: `${systemInstruction}\n\nUser symptom report:\n${text}` }
-          ]
-        }
-      ],
-      generationConfig: {
-        temperature: 0.2,
-        maxOutputTokens: 500
+    // Build message list in OpenAI format
+    const messages = [
+      { role: 'system', content: systemInstruction },
+      { role: 'user', content: text }
+    ];
+
+    // Allow caller to request a specific model (overrides env defaults)
+    const originalProvider = LLM_PROVIDER; // keep for fallback logic inside callLLM
+    let chosenProvider = LLM_PROVIDER;
+    let chosenModel = null;
+    if (model) {
+      // Expected format: "groq:llama3-70b-8192" or "gemini:gemini-1.5-pro"
+      const [prov, mdl] = model.split(':');
+      if (prov && mdl) {
+        chosenProvider = prov.toLowerCase();
+        chosenModel = mdl;
       }
-    };
-
-    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    });
-
-    if (!resp.ok) {
-      const txt = await resp.text();
-      console.error("Gemini API Error Detail:", txt);
-      return res.status(502).json({ error: 'Gemini API error', detail: txt });
     }
 
-    const data = await resp.json();
-    const answer = data?.candidates?.[0]?.content?.parts?.[0]?.text || null;
-    return res.json({ answer });
+    // Temporarily override env vars for this request
+    const prevProvider = process.env.LLM_PROVIDER;
+    const prevGroqModel = process.env.GROQ_MODEL;
+    const prevGeminiModel = process.env.GEMINI_MODEL;
+    if (chosenProvider) process.env.LLM_PROVIDER = chosenProvider;
+    if (chosenModel) {
+      if (chosenProvider === 'groq') process.env.GROQ_MODEL = chosenModel;
+      if (chosenProvider === 'gemini') process.env.GEMINI_MODEL = chosenModel;
+    }
+
+    try {
+      const answer = await callLLM(messages);
+      return res.json({ answer });
+    } finally {
+      // Restore original env values
+      if (prevProvider !== undefined) process.env.LLM_PROVIDER = prevProvider;
+      if (prevGroqModel !== undefined) process.env.GROQ_MODEL = prevGroqModel;
+      if (prevGeminiModel !== undefined) process.env.GEMINI_MODEL = prevGeminiModel;
+    }
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Server error' });
@@ -105,6 +214,7 @@ app.post('/transcribe', upload.single('file'), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'Missing file' });
     if (!GEMINI_KEY) return res.status(500).json({ error: 'Server not configured with GEMINI_API_KEY' });
 
+    // Groq does not support audio transcription, so we keep Gemini for this endpoint.
     const base64Audio = req.file.buffer.toString('base64');
     const mimeType = req.file.mimetype || 'audio/webm';
 
@@ -261,5 +371,9 @@ app.post('/prescription-ocr', upload.single('file'), async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`Gemini proxy listening on port ${PORT}`));
+
+if (require.main === module) {
+  app.listen(PORT, () => console.log(`Gemini proxy listening on port ${PORT}`));
+} else {
+  module.exports = app;
+}

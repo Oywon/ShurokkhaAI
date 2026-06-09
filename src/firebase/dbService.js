@@ -39,6 +39,12 @@ import {
 } from "firebase/storage";
 import { sendPasswordResetEmail, updateProfile as fbUpdateProfile } from "firebase/auth";
 import { db, storage, auth } from "./config";
+import {
+  MENTAL_HEALTH_SUGGESTIONS,
+  MENTAL_HEALTH_CATEGORIES,
+  CRISIS_RESOURCES,
+  getSuggestionsByCategory,
+} from "../data/mentalHealthSuggestions";
 
 // Translate common Firebase auth / Firestore errors into Bengali.
 export function errorMessage(err, fallback = "একটি সমস্যা হয়েছে, আবার চেষ্টা করুন।") {
@@ -390,14 +396,7 @@ export function subscribeTodayVitals(uid, dateStr, onChange) {
 // ── MENTAL HEALTH SUGGESTIONS ────────────────────────────────────────
 //
 // 100-entry Bengali mental-health suggestion database lives in
-// src/data/mentalHealthSuggestions.js. We import it lazily so the rest of
-// the app doesn't pay the cost unless the mental-health modal is opened.
-import {
-  MENTAL_HEALTH_SUGGESTIONS,
-  MENTAL_HEALTH_CATEGORIES,
-  CRISIS_RESOURCES,
-  getSuggestionsByCategory,
-} from "../data/mentalHealthSuggestions";
+// src/data/mentalHealthSuggestions.js.
 
 /**
  * Return suggestions filtered by category. If category is omitted or

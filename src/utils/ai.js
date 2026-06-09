@@ -1,5 +1,19 @@
 // Helper to safely get environment variables in both Vite and Create React App environments
 function getEnvVar(name) {
+  // Static checks to allow Webpack and Vite static replacements
+  if (name === 'REACT_APP_AI_API_URL') {
+    return (typeof process !== 'undefined' && process.env && process.env.REACT_APP_AI_API_URL) ||
+           (import.meta.env && import.meta.env.VITE_AI_API_URL) || null;
+  }
+  if (name === 'REACT_APP_OPENAI_API_KEY') {
+    return (typeof process !== 'undefined' && process.env && process.env.REACT_APP_OPENAI_API_KEY) ||
+           (import.meta.env && import.meta.env.VITE_OPENAI_API_KEY) || null;
+  }
+  if (name === 'REACT_APP_VISION_API_URL') {
+    return (typeof process !== 'undefined' && process.env && process.env.REACT_APP_VISION_API_URL) ||
+           (import.meta.env && import.meta.env.VITE_VISION_API_URL) || null;
+  }
+
   const viteName = name.replace("REACT_APP_", "VITE_");
   try {
     if (import.meta.env && import.meta.env[viteName]) {
@@ -52,7 +66,7 @@ async function callOpenAIChat(prompt) {
 
 export async function analyzeSymptomsAPI(text) {
   // Use VITE_AI_API_URL or fallback to local proxy port 3001
-  const url = getEnvVar('REACT_APP_AI_API_URL') || 'http://localhost:3001';
+  const url = getEnvVar('REACT_APP_AI_API_URL') || 'https://server-six-teal-95.vercel.app';
   
   if (url) {
     try {
@@ -93,7 +107,7 @@ export async function analyzeSymptomsAPI(text) {
 }
 
 export async function transcribeAudioAPI(blob) {
-  const url = getEnvVar('REACT_APP_AI_API_URL') || 'http://localhost:3001';
+  const url = getEnvVar('REACT_APP_AI_API_URL') || 'https://server-six-teal-95.vercel.app';
 
   if (url) {
     try {
@@ -161,7 +175,7 @@ export async function analyzePrescriptionAPI(file, { onProgress } = {}) {
   const fd = new FormData();
   fd.append("file", file, file.name || "prescription.jpg");
 
-  const proxyUrl = getEnvVar("REACT_APP_AI_API_URL") || "http://localhost:3001";
+  const proxyUrl = getEnvVar("REACT_APP_AI_API_URL") || "https://server-six-teal-95.vercel.app";
   const visionUrl = getEnvVar("REACT_APP_VISION_API_URL");
 
   const tryJson = async (url) => {

@@ -1,5 +1,11 @@
 // Helper to safely get environment variables in both Vite and CRA
 function getEnvVar(name) {
+  // Static checks to allow Webpack and Vite static replacements
+  if (name === 'REACT_APP_AI_API_URL') {
+    return (typeof process !== 'undefined' && process.env && process.env.REACT_APP_AI_API_URL) ||
+           (import.meta.env && import.meta.env.VITE_AI_API_URL) || null;
+  }
+
   const viteName = name.replace("REACT_APP_", "VITE_");
   try {
     if (import.meta.env && import.meta.env[viteName]) {
@@ -32,7 +38,7 @@ function getCurrentCoords() {
 // Returns { temp, feelsLike, humidity, description, city, country, source }.
 // `source` is "api" on success, "fallback" if API not configured.
 export async function fetchCurrentWeather() {
-  const url = getEnvVar('REACT_APP_AI_API_URL') || 'http://localhost:3001';
+  const url = getEnvVar('REACT_APP_AI_API_URL') || 'https://server-six-teal-95.vercel.app';
   try {
     const { lat, lon } = await getCurrentCoords();
     const res = await fetch(`${url.replace(/\/$/, '')}/weather?lat=${lat}&lon=${lon}`);
