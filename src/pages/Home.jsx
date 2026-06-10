@@ -2,12 +2,15 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { getUserProfile, logSOS } from "../firebase/dbService";
+import { useInstallPrompt } from "../hooks/useInstallPrompt";
+import Skeleton from "../components/Skeleton";
 
 export default function Home() {
   const { currentUser } = useAuth();
   const [profile, setProfile] = useState(null);
   const [sosStatus, setSosStatus] = useState("");
   const [sendingSos, setSendingSos] = useState(false);
+  const install = useInstallPrompt();
 
   useEffect(() => {
     async function fetchProfile() {
@@ -68,19 +71,73 @@ export default function Home() {
       {/* Header (Home green style) */}
       <div className="hdr green">
         <div className="hdr-greeting">আস্সালামু আলাইকুম 👋</div>
-        <div className="hdr-name">{profile?.name || "অতিথি ব্যবহারকারী"}</div>
-        <div className="hdr-tagline">আপনার স্বাস্থ্য সহায়ক · Shurokkha AI</div>
+        {profile === null && currentUser ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 6 }}>
+            <Skeleton width="55%" height={20} style={{ background: "rgba(255,255,255,0.35)" }} />
+            <Skeleton width="40%" height={10} style={{ background: "rgba(255,255,255,0.25)" }} />
+          </div>
+        ) : (
+          <>
+            <div className="hdr-name">{profile?.name || "অতিথি ব্যবহারকারী"}</div>
+            <div className="hdr-tagline">আপনার স্বাস্থ্য সহায়ক · Shurokkha AI</div>
+          </>
+        )}
       </div>
 
-      {/* Alert Banner */}
-      <Link to="/alerts" className="alert-bar">
-        <div className="alert-bar-icon">⚠️</div>
-        <div>
-          <div className="alert-bar-title">বন্যার সতর্কতা — সিলেট</div>
-          <div className="alert-bar-sub">আজকের লাইভ আপডেট ও আশ্রয়কেন্দ্র দেখুন</div>
+      {/* PWA Install Banner (dismissable, 7-day cooldown) */}
+      {install.visible && (
+        <div
+          role="region"
+          aria-label="অ্যাপ ইনস্টল ব্যানার"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            margin: "10px 14px 0",
+            padding: "10px 12px",
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            borderRadius: 12
+          }}
+        >
+          <div style={{ fontSize: 22 }}>📲</div>
+          <div style={{ flex: 1, lineHeight: 1.3 }}>
+            <div style={{ fontSize: 12, fontWeight: 700 }}>অ্যাপ হিসেবে যোগ করুন</div>
+            <div style={{ fontSize: 10, color: "var(--text-muted)" }}>দ্রুত লোড · অফলাইনেও কাজ করে</div>
+          </div>
+          <button
+            onClick={() => install.dismiss()}
+            style={{
+              background: "none",
+              border: "1px solid var(--border)",
+              borderRadius: 8,
+              padding: "4px 8px",
+              fontSize: 11,
+              cursor: "pointer"
+            }}
+          >
+            পরে
+          </button>
+          <button
+            onClick={async () => {
+              const ok = await install.promptInstall();
+              if (!ok) install.dismiss();
+            }}
+            style={{
+              background: "var(--green)",
+              color: "#fff",
+              border: "none",
+              borderRadius: 8,
+              padding: "6px 10px",
+              fontSize: 11,
+              fontWeight: 700,
+              cursor: "pointer"
+            }}
+          >
+            যোগ করুন
+          </button>
         </div>
-        <div className="alert-bar-arrow">›</div>
-      </Link>
+      )}
 
       {/* SOS Button Area */}
       <div className="sos-wrap">

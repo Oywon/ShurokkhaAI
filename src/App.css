@@ -42,35 +42,53 @@
   padding: 0;
 }
 
-body {
-  background: #E8EDE9;
-  font-family: var(--font-bn);
-  color: var(--txt);
-  min-height: 100vh;
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
 }
 
-/* App Wrapper for responsive portrait layout centering */
+body {
+  background: var(--bg);
+  font-family: var(--font-bn);
+  color: var(--txt);
+  overflow: hidden;          /* prevent body scroll; only the message area scrolls */
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Root fills the whole viewport — no centered card, no max-width. */
 .app-wrapper {
-  min-height: 100vh;
+  width: 100vw;
+  height: 100dvh;            /* dynamic viewport for mobile/PWA */
+  height: 100vh;             /* fallback */
   display: flex;
   flex-direction: column;
-  background: #E8EDE9;
-  align-items: center;
-  justify-content: center;
-  padding: 20px 10px;
+  background: var(--bg);
+  overflow: hidden;
 }
 
 .main-content {
   width: 100%;
-  max-width: 450px; /* Clean portrait container width */
-  min-height: 800px;
-  background: var(--bg);
-  border-radius: 16px;
-  overflow: hidden;
+  flex: 1 1 auto;
+  min-height: 0;             /* let children shrink inside flex parent */
   display: flex;
   flex-direction: column;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+  background: var(--bg);
   position: relative;
+  overflow: hidden;
+}
+
+/* Every page rendered by <Routes> lands as the first child of .main-content.
+   Make it a flex column that claims the remaining space above the bottom
+   nav. .phone-nav is excluded because it has its own flex: 0 0 auto.
+   Don't force overflow:hidden — let .scroll-area / .auth-page / .chat-body
+   decide their own scroll behaviour. */
+.main-content > *:not(.phone-nav) {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Status Bar */
@@ -273,9 +291,11 @@ body {
 
 /* Navigation Bar */
 .phone-nav {
+  flex: 0 0 auto;          /* never shrink, always pinned at bottom */
   display: flex;
   justify-content: space-around;
-  padding: 10px 0 12px;
+  padding: 8px 0 10px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--border);
   background: var(--bg);
   position: relative;
@@ -305,8 +325,10 @@ body {
 
 /* Chat Screen CSS */
 .chat-hdr {
+  flex: 0 0 auto;
   background: var(--green);
   padding: 12px 16px;
+  padding-top: calc(12px + env(safe-area-inset-top, 0px));
   display: flex;
   align-items: center;
   gap: 12px;
@@ -339,15 +361,49 @@ body {
   border: none;
   color: white;
 }
+.chat-clear-btn {
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.3);
+  color: white;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  border-radius: 50%;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.chat-clear-btn:hover {
+  background: rgba(255,255,255,0.18);
+}
+.chat-clear-btn:active {
+  background: rgba(255,255,255,0.28);
+}
 
 .chat-body {
-  flex: 1;
-  padding: 14px;
+  flex: 1 1 auto;
+  min-height: 0;          /* let inner scroll area actually shrink */
+  display: flex;
+  flex-direction: column;
+  background: var(--bg2);
+  overflow: hidden;        /* outer chat-body is NOT the scroller; .chat-messages is */
+}
+
+.chat-messages {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background: var(--bg2);
-  overflow-y: auto;
+  padding: 14px;
 }
 .bubble-sender {
   font-size: 10px;
@@ -400,10 +456,12 @@ body {
 }
 
 .chat-input-row {
+  flex: 0 0 auto;          /* never shrink, always pinned at bottom */
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid var(--border);
   background: var(--bg);
 }
@@ -867,10 +925,40 @@ body {
   flex-direction: column;
 }
 .flabel {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--txt2);
   margin-bottom: 6px;
+  font-family: var(--font-bn);
+  line-height: 1.3;
+}
+
+/* Shared form-control utility. Apply to any <input>, <select>, or <button>
+   that should match the standard 44px control height used across login,
+   signup, and in-page forms. Pairs with .form-control-row for spacing.   */
+.form-control,
+input.form-control,
+select.form-control,
+button.form-control {
+  height: var(--control-h);
+  box-sizing: border-box;
+  width: 100%;
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  font-family: var(--font-bn);
+  line-height: 1.2;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+}
+.form-control-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.form-control-row .flabel {
+  margin-bottom: 0;
 }
 .finput-wrap {
   position: relative;
@@ -892,6 +980,22 @@ body {
 }
 .finput.no-icon {
   padding-left: 12px;
+}
+.finput-select {
+  padding-left: 12px;
+  padding-right: 36px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%231A1A1A' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px 12px;
+  cursor: pointer;
+}
+.finput-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 .fi-left {
   position: absolute;
@@ -971,14 +1075,23 @@ body {
 }
 
 .auth-tab {
+  height: var(--control-h);
+  box-sizing: border-box;
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
-  padding: 10px 0;
-  font-size: 11px;
+  padding: 0 12px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--txt2);
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-bn);
   transition: transform 0.2s, background 0.2s, border-color 0.2s;
 }
 
@@ -993,22 +1106,57 @@ body {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
 }
 
+/* Auth / login / register — full-bleed screen, no centered card.
+   The green .login-brand hero is the visual identity; below it the
+   form sits on a flat white surface that fills the screen edge-to-edge. */
 .auth-page {
-  min-height: calc(100vh - 72px);
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px 16px;
-  background: linear-gradient(180deg, rgba(249, 250, 251, 0.98), rgba(238, 252, 242, 0.98));
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: space-between;
+  background: var(--bg);
+  overflow: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .auth-card {
-  width: min(480px, 100%);
-  background: #fff;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 28px;
+  width: 100%;
+  max-width: 100%;
+  align-self: stretch;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
   overflow: hidden;
-  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.08);
+}
+
+.auth-brand {
+  flex: 0 0 auto;
+  padding: 28px 16px 12px;
+  text-align: center;
+}
+
+.auth-form-section {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 12px 0 16px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.auth-actions {
+  flex: 0 0 auto;
+  padding: 8px 16px calc(20px + env(safe-area-inset-bottom, 0px));
 }
 
 .auth-form {
@@ -1019,7 +1167,7 @@ body {
 }
 
 .auth-divider {
-  margin: 12px 18px 0;
+  margin: 8px 18px 0;
   text-align: center;
   font-size: 11px;
   color: var(--txt3);
@@ -1068,20 +1216,63 @@ body {
 }
 
 .auth-btn-secondary {
-  width: calc(100% - 36px);
-  margin: 0 18px 16px;
+  width: 100%;
+  height: var(--control-h);
+  box-sizing: border-box;
   background: #f8fafc;
   color: var(--txt2);
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
-  padding: 11px;
-  font-size: 12px;
+  padding: 0 16px;
+  font-size: 13px;
   font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+  font-family: var(--font-bn);
+  transition: background 0.2s, border-color 0.2s;
+}
+.auth-btn-secondary:hover {
+  background: var(--bg2);
+  border-color: var(--border2);
+}
+
+/* Google sign-in button — larger, with the official G icon */
+.auth-btn-google {
+  height: 52px;
+  padding: 0 20px;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #dadce0;
+  color: #3c4043;
+  box-shadow: 0 1px 2px rgba(60, 64, 67, 0.08),
+              0 1px 3px rgba(60, 64, 67, 0.04);
+}
+.auth-btn-google:hover {
+  background: #f8f9fa;
+  border-color: #c4c7c5;
+  box-shadow: 0 1px 2px rgba(60, 64, 67, 0.12),
+              0 2px 6px rgba(60, 64, 67, 0.08);
+}
+.auth-btn-google:active {
+  background: #f1f3f4;
+  box-shadow: 0 1px 2px rgba(60, 64, 67, 0.1);
+}
+.auth-btn-google:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.google-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  display: block;
 }
 
 .btn-reset {
@@ -2438,3 +2629,325 @@ body {
   border-radius: 999px;
 }
 .nut-food-macro { color: var(--txt3); }
+
+/* ============================================================
+   UI Consistency & Mobile-Friendly Global Fixes
+   ============================================================ */
+
+/* 1. Remove gray tap-flash on iOS/Android */
+button, a, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 2. Minimum touch-target size for small interactive elements.
+   Applied to chips, small icon buttons, and alert bars so they
+   meet the 44×44px WCAG / iOS HIG recommendation.            */
+.chip,
+.chat-mic,
+.chat-clear-btn,
+.mic-btn,
+.hdr-back,
+.modal-close-btn {
+  min-height: 44px;
+  min-width: 44px;
+}
+/* Chips are text-heavy so keep them narrow but tall enough */
+.chip {
+  min-width: auto;
+  padding: 6px 12px;
+}
+
+/* 3. Safe-area insets for notched phones (iPhone X+, etc.)
+   Applied to the main container so content doesn't hide
+   behind the notch or home indicator.                        */
+.main-content {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* 4. Modal sizing: wider on landscape phones, capped on tablets */
+.modal-content {
+  max-width: min(92vw, 380px);
+  max-height: min(85vh, 600px);
+}
+
+/* 5. Bangla text overflow: prevent long compound words from
+   breaking layout in narrow containers.                       */
+.bubble,
+.finput,
+.hdr-title,
+.hdr-sub,
+.hdr-name,
+.hdr-tagline,
+.hdr-greeting,
+.chat-name,
+.chat-online,
+.alert-bar-title,
+.alert-bar-sub {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* 6. Smooth font rendering on macOS / iOS */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 7. Responsive: on very small screens (<360px) reduce padding
+   so the app still fits without horizontal scroll.             */
+@media (max-width: 359px) {
+  .hdr {
+    padding: 12px 10px;
+  }
+  .modal-content {
+    padding: 14px;
+  }
+  .chat-hdr {
+    padding: 10px 10px;
+    gap: 8px;
+  }
+  .chat-input-row {
+    padding: 8px 10px;
+  }
+}
+
+/* 8. Landscape phone: reduce vertical chrome so content is visible */
+@media (max-height: 500px) and (orientation: landscape) {
+  .main-content {
+    min-height: auto;
+  }
+  .hdr {
+    padding: 8px 14px;
+  }
+  .phone-sbar {
+    display: none;
+  }
+}
+
+/* 9. Scrollbar: thin custom scrollbar for chat & modal on desktop */
+.scroll-area,
+.chat-messages,
+.modal-content {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border2) transparent;
+}
+.scroll-area::-webkit-scrollbar,
+.chat-messages::-webkit-scrollbar,
+.modal-content::-webkit-scrollbar {
+  width: 4px;
+}
+.scroll-area::-webkit-scrollbar-thumb,
+.chat-messages::-webkit-scrollbar-thumb,
+.modal-content::-webkit-scrollbar-thumb {
+  background: var(--border2);
+  border-radius: 4px;
+}
+
+/* 10. PWA install banner — slides up from the bottom on mobile.
+     Sits above the bottom nav and respects the safe-area inset. */
+.pwa-install-banner {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #ffffff;
+  color: var(--txt);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+  font-family: var(--font-bn);
+  animation: pwa-install-in 0.28s ease-out;
+}
+
+@keyframes pwa-install-in {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.pwa-install-icon {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--green-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pwa-install-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pwa-install-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pwa-install-title {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--txt);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pwa-install-sub {
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--txt2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pwa-install-btn {
+  flex: 0 0 auto;
+  border: none;
+  background: var(--green);
+  color: #fff;
+  font-family: var(--font-bn);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  min-height: 36px;
+}
+.pwa-install-btn:hover { background: var(--green-dark); }
+.pwa-install-btn:active { transform: scale(0.97); }
+
+.pwa-install-close {
+  flex: 0 0 auto;
+  border: none;
+  background: transparent;
+  color: var(--txt3);
+  font-size: 22px;
+  line-height: 1;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.pwa-install-close:hover { background: var(--bg2); color: var(--txt); }
+
+@media (max-width: 360px) {
+  .pwa-install-sub { display: none; }
+}
+
+/* ── Desktop: mobile-app preview ──────────────────────────────────
+   On screens ≥ 768px, present the PWA as a centered phone preview
+   using realistic modern-phone proportions (~19.5:9). On actual
+   mobile devices the styles below are ignored and the app stays
+   full-bleed as before. */
+@media (min-width: 768px) {
+  /* The flex centering chain must run all the way from <html> down to
+     <div id="root"> — that's the actual container holding the React
+     tree. Centering only <body> leaves #root as a block-flow 100%-wide
+     child, which is what was pushing the preview to the left. */
+  html, body, #root {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;          /* horizontal center */
+    align-items: center;              /* vertical center */
+    min-height: 100vh;                /* never shorter than the viewport */
+    width: 100%;
+  }
+
+  /* Clean light-gray "desk" gradient — no decorative device frame.
+     body must NOT clip the preview — the preview sits inside the
+     viewport via flex and must never be hidden by body overflow. */
+  body {
+    background: #eef0f3;
+    background-image:
+      radial-gradient(ellipse at 50% 0%, #ffffff 0%, #eef0f3 60%);
+    padding: 16px;                    /* breathing room wrapper-style */
+    box-sizing: border-box;
+  }
+
+  /* The whole app becomes the "phone" */
+  .app-wrapper {
+    /* Fixed modern-phone width */
+    width: min(100%, 430px);
+    /* Use a viewport-relative height (NOT a hardcoded 800/850/900px)
+       so the preview always fills the available desktop height.
+       calc(100vh - 32px) leaves 16px of breathing room top & bottom
+       (matching the 16px padding on body). */
+    height: calc(100vh - 32px);
+    max-height: 920px;                /* safety cap on ultra-tall monitors */
+    /* The preview itself is a flex column so header / scroll /
+       bottom-nav stack correctly inside it. */
+    display: flex;
+    flex-direction: column;
+    min-height: 0;                   /* let children shrink */
+    background: var(--bg);
+    border-radius: 20px;             /* small, phone-like radius */
+    /* Subtle shadow only — no fake bezels, no giant frames */
+    box-shadow:
+      0 12px 32px -8px rgba(15, 23, 42, 0.18),
+      0 2px 6px rgba(15, 23, 42, 0.06);
+    overflow: hidden;                /* clip inner content to the radius */
+    position: relative;
+    /* No margin-left / left / translateX / absolute / fixed —
+       centering is handled by the flex chain on html/body/#root. */
+    margin: 0;
+  }
+
+  /* Let flex children shrink properly inside the capped-height preview */
+  .app-wrapper > * { min-height: 0; }
+
+  /* main-content is the second flex child of .app-wrapper.
+     It hosts the page (scrollable) + the bottom nav. */
+  .main-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;                  /* take all remaining height */
+    min-height: 0;                   /* critical: allows children to scroll */
+  }
+
+  /* Pages inside .main-content must respect the preview's height
+     and scroll internally — never expand the viewport. */
+  .main-content > *:not(.phone-nav) {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;                /* scrollable content area */
+  }
+
+  /* Round the bottom nav so it follows the preview's lower corners
+     instead of poking out as a square slab. The nav is pinned to
+     the bottom of the preview and never shrinks. */
+  .phone-nav {
+    flex: 0 0 auto;                  /* never shrink */
+    flex-shrink: 0;
+    position: sticky;
+    bottom: 0;
+    z-index: 100;
+    border-radius: 0 0 20px 20px;
+  }
+
+  /* Auth/login page: let the new 3-section flex layout (brand /
+     form-section / actions) distribute itself top-to-bottom inside
+     the preview. The flex chain already centers the wrapper on the
+     page, so no extra overrides are needed here. */
+  .auth-page {
+    overflow: hidden;
+  }
+}

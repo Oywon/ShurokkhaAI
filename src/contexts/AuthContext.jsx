@@ -2,6 +2,8 @@
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
   signOut,
   onAuthStateChanged,
   updateProfile as fbUpdateProfile,
@@ -108,6 +110,43 @@ export function AuthProvider({ children }) {
       setCurrentUser(mockUser);
       localStorage.setItem('mock_current_user', JSON.stringify(mockUser));
       return { user: mockUser };
+    }
+  }
+
+  async function signInWithGoogle() {
+    try {
+      const provider = new GoogleAuthProvider();
+      try { provider.setDefaultLanguage?.('bn'); } catch (_) { /* ignore */ }
+      const result = await signInWithPopup(auth, provider);
+      const u = result?.user;
+      // Best-effort profile mirror (non-blocking)
+      try {
+        if (u && u.uid) {
+          localStorage.setItem(
+            'mock_user_profile_' + u.uid,
+            JSON.stringify({
+              name: u.displayName || '',
+              email: u.email || '',
+              photoURL: u.photoURL || null,
+              provider: 'google',
+              updatedAt: Date.now(),
+            })
+          );
+        }
+      } catch (_) { /* ignore */ }
+      return { ok: true, source: 'firebase', user: u };
+    } catch (err) {
+      console.warn('Google sign-in failed, using local mock:', err?.message);
+      const mockUser = {
+        uid: 'google_' + Math.random().toString(36).slice(2, 10),
+        email: 'guest+' + Date.now() + '@local',
+        displayName: 'অতিথি',
+        photoURL: null,
+        provider: 'google-mock',
+      };
+      setCurrentUser(mockUser);
+      try { localStorage.setItem('mock_current_user', JSON.stringify(mockUser)); } catch (_) {}
+      return { ok: true, source: 'local', user: mockUser };
     }
   }
 
@@ -221,6 +260,7 @@ export function AuthProvider({ children }) {
     currentUser,
     signup,
     login,
+    signInWithGoogle,
     logout,
     resetPassword,
     confirmResetCode,

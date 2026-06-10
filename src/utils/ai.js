@@ -1,13 +1,11 @@
 // Helper to safely get environment variables in both Vite and Create React App environments
+// SECURITY: The browser must never receive secret API keys. Only the public proxy URL
+// is read on the client. Any LLM provider key (OpenAI, Groq, Gemini) MUST live on the
+// Express proxy in /server — it is never sent to the browser.
 function getEnvVar(name) {
-  // Static checks to allow Webpack and Vite static replacements
   if (name === 'REACT_APP_AI_API_URL') {
     return (typeof process !== 'undefined' && process.env && process.env.REACT_APP_AI_API_URL) ||
            (import.meta.env && import.meta.env.VITE_AI_API_URL) || null;
-  }
-  if (name === 'REACT_APP_OPENAI_API_KEY') {
-    return (typeof process !== 'undefined' && process.env && process.env.REACT_APP_OPENAI_API_KEY) ||
-           (import.meta.env && import.meta.env.VITE_OPENAI_API_KEY) || null;
   }
   if (name === 'REACT_APP_VISION_API_URL') {
     return (typeof process !== 'undefined' && process.env && process.env.REACT_APP_VISION_API_URL) ||
@@ -30,44 +28,10 @@ function getEnvVar(name) {
   return null;
 }
 
-async function callOpenAIChat(prompt) {
-  const key = getEnvVar('REACT_APP_OPENAI_API_KEY');
-  if (!key) return null;
-  try {
-    const body = {
-      model: 'gpt-3.5-turbo',
-      messages: [
-        { role: 'system', content: 'You are a concise medical assistant. Provide short, clear, and safe first-aid style advice in Bengali when possible.' },
-        { role: 'user', content: prompt }
-      ],
-      max_tokens: 500,
-      temperature: 0.2
-    };
-
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${key}`
-      },
-      body: JSON.stringify(body)
-    });
-    if (!res.ok) {
-      const txt = await res.text();
-      throw new Error(`OpenAI error: ${res.status} ${txt}`);
-    }
-    const data = await res.json();
-    return data?.choices?.[0]?.message?.content || null;
-  } catch (err) {
-    console.error('OpenAI call failed', err);
-    return null;
-  }
-}
-
 export async function analyzeSymptomsAPI(text) {
   // Use VITE_AI_API_URL or fallback to local proxy port 3001
   const url = getEnvVar('REACT_APP_AI_API_URL') || 'https://server-six-teal-95.vercel.app';
-  
+
   if (url) {
     try {
       const res = await fetch(`${url.replace(/\/$/, '')}/analyze`, {
@@ -79,19 +43,11 @@ export async function analyzeSymptomsAPI(text) {
       const data = await res.json();
       return data.answer || JSON.stringify(data);
     } catch (err) {
-      console.error('AI analyze error, attempting fallback...', err);
+      console.error('AI analyze error:', err);
     }
   }
 
-  // 2) Direct client-side OpenAI call (insecure fallback)
-  const openAIKey = getEnvVar('REACT_APP_OPENAI_API_KEY');
-  if (openAIKey) {
-    const prompt = `User symptom report:\n${text}\n\nProvide a short, safe, primary-care style recommendation in Bengali when possible.`;
-    const out = await callOpenAIChat(prompt);
-    if (out) return out;
-  }
-
-  // 3) Local heuristic fallback (Bangla/English friendly)
+  // Local heuristic fallback (Bangla/English friendly)
   const trimmed = (text || '').trim();
   if (!trimmed) return 'দয়া করে উপসর্গ দিন।';
   if (/জ্বর|fever|high temperature/i.test(trimmed)) {
@@ -107,6 +63,8 @@ export async function analyzeSymptomsAPI(text) {
 }
 
 export async function transcribeAudioAPI(blob) {
+  // SECURITY: only the proxy URL is read on the client. Audio is sent to the
+  // Express proxy which holds the GEMINI_API_KEY. No direct browser→OpenAI call.
   const url = getEnvVar('REACT_APP_AI_API_URL') || 'https://server-six-teal-95.vercel.app';
 
   if (url) {
@@ -121,32 +79,8 @@ export async function transcribeAudioAPI(blob) {
       const data = await res.json();
       return data.text || null;
     } catch (err) {
-      console.error('Transcription error, attempting fallback...', err);
-    }
-  }
-
-  // Direct Whisper client call (insecure fallback)
-  const key = getEnvVar('REACT_APP_OPENAI_API_KEY');
-  if (key) {
-    try {
-      const fd = new FormData();
-      fd.append('file', blob, 'recording.webm');
-      fd.append('model', 'whisper-1');
-      const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${key}`
-        },
-        body: fd
-      });
-      if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(`Whisper error: ${res.status} ${txt}`);
-      }
-      const data = await res.json();
-      return data.text || null;
-    } catch (err) {
-      console.error('Whisper transcription failed', err);
+      console.error('Transcription error:', err);
+      return null;
     }
   }
 
@@ -172,8 +106,22 @@ export async function analyzePrescriptionAPI(file, { onProgress } = {}) {
 
   try { onProgress && onProgress(10); } catch (e) {}
 
+  // Compress the image client-side before sending to reduce upload size and
+  // server load. Skip compression for non-image types or very small files.
+  let uploadFile = file;
+  try {
+    if (file.type && file.type.startsWith("image/") && file.size > 250 * 1024) {
+      const compressed = await compressImage(file, { maxEdge: 1600, quality: 0.8 });
+      if (compressed && compressed.size && compressed.size < file.size) {
+        uploadFile = compressed;
+      }
+    }
+  } catch (e) {
+    console.warn("Image compression failed, sending original:", e?.message);
+  }
+
   const fd = new FormData();
-  fd.append("file", file, file.name || "prescription.jpg");
+  fd.append("file", uploadFile, uploadFile.name || "prescription.jpg");
 
   const proxyUrl = getEnvVar("REACT_APP_AI_API_URL") || "https://server-six-teal-95.vercel.app";
   const visionUrl = getEnvVar("REACT_APP_VISION_API_URL");
@@ -249,4 +197,99 @@ function localHeuristicPrescription(file) {
     matches.push({ ...COMMON_MEDS[0], confidence: 0.4 });
   }
   return matches;
+}
+
+// ─── Image compression ────────────────────────────────────────────────────
+//
+// compressImage(file, { maxEdge, quality, type })
+//   - Reads a File/Blob, draws it onto a canvas scaled so neither edge
+//     exceeds `maxEdge` (default 1600px), and re-encodes as JPEG.
+//   - Skips re-encoding when the original is already smaller than the target
+//     and within the max edge — returns the original untouched.
+//   - Preserves transparency for PNG by detecting alpha; in that case
+//     `type` defaults to "image/png".
+//   - Resolves to a File (so the name + lastModified metadata are kept).
+//
+// Returns a Promise<File>. Throws on read/decode errors which the caller can
+// catch and fall back to the original file.
+export function compressImage(
+  file,
+  { maxEdge = 1600, quality = 0.8, type } = {}
+) {
+  return new Promise((resolve, reject) => {
+    if (!file || !file.type || !file.type.startsWith("image/")) {
+      return reject(new Error("Not an image file"));
+    }
+
+    const isPng = file.type === "image/png";
+    const targetType = type || (isPng ? "image/png" : "image/jpeg");
+    const targetExt = targetType === "image/png" ? "png" : "jpg";
+
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("FileReader failed"));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("Image decode failed"));
+      img.onload = () => {
+        try {
+          const { width, height } = img;
+          if (!width || !height) {
+            return reject(new Error("Invalid image dimensions"));
+          }
+
+          // Calculate new dimensions, preserving aspect ratio.
+          let newW = width;
+          let newH = height;
+          const longEdge = Math.max(width, height);
+          if (longEdge > maxEdge) {
+            const scale = maxEdge / longEdge;
+            newW = Math.round(width * scale);
+            newH = Math.round(height * scale);
+          }
+
+          // If already small enough and the format is the same, skip re-encode.
+          if (newW === width && newH === height && file.size < maxEdge * 1024 && file.type === targetType) {
+            return resolve(file);
+          }
+
+          const canvas = document.createElement("canvas");
+          canvas.width = newW;
+          canvas.height = newH;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return reject(new Error("Canvas 2D context unavailable"));
+
+          // Fill white background for JPEG (otherwise dark images of photos
+          // would turn transparent areas black on encode).
+          if (targetType === "image/jpeg") {
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, newW, newH);
+          }
+          ctx.drawImage(img, 0, 0, newW, newH);
+
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) return reject(new Error("Canvas toBlob returned null"));
+              // If the new blob is bigger than the original, keep the original.
+              if (blob.size >= file.size) {
+                return resolve(file);
+              }
+              const baseName = (file.name || "image").replace(/\.[^.]+$/, "");
+              const compressed = new File(
+                [blob],
+                `${baseName}-compressed.${targetExt}`,
+                { type: targetType, lastModified: Date.now() }
+              );
+              resolve(compressed);
+            },
+            targetType,
+            targetType === "image/jpeg" ? quality : undefined
+          );
+        } catch (e) {
+          reject(e);
+        }
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
 }

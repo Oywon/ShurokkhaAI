@@ -9,8 +9,10 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import DataEntry from "./pages/DataEntry";
 import Navbar from "./components/Navbar";
+import PWAInstallBanner from "./components/PWAInstallBanner";
 import "./App.css";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { ToastProvider } from "./contexts/ToastContext";
 
 function PhoneLayout() {
   const location = useLocation();
@@ -35,6 +37,9 @@ function PhoneLayout() {
 
       {/* Bottom Navigation */}
       {!hideNav && <Navbar />}
+
+      {/* PWA install prompt — hidden on login/register, slides up from bottom */}
+      {!hideNav && <PWAInstallBanner />}
     </div>
   );
 }
@@ -47,11 +52,13 @@ function ProtectedRoute({ children }) {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <div className="app-wrapper">
-          <PhoneLayout />
-        </div>
-      </Router>
+      <ToastProvider>
+        <Router>
+          <div className="app-wrapper">
+            <PhoneLayout />
+          </div>
+        </Router>
+      </ToastProvider>
     </AuthProvider>
   );
 }

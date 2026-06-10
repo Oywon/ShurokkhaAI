@@ -1,16 +1,66 @@
 import React, { useState, useEffect, useRef } from "react";
 import { analyzeSymptomsAPI, transcribeAudioAPI } from "../utils/ai";
 import { createRecorder } from "../utils/voice";
+import { speak as speakTTS, stopSpeaking } from "../utils/tts";
+import { useToast } from "../contexts/ToastContext";
+import { useAuth } from "../contexts/AuthContext";
+
+const TTS_STORAGE_KEY = "shurokkha.tts.enabled";
+const CHAT_STORAGE_PREFIX = "shurokkha.chat."; // + uid (or "guest")
+const CHAT_HISTORY_MAX = 100; // cap to keep localStorage small
+const WELCOME_MSG = {
+  id: 1,
+  sender: "ai",
+  text: "আস্সালামু আলাইকুম! আপনার কী সমস্যা হচ্ছে? আমি সাহায্য করতে এসেছি। 🌿",
+};
+
+function chatKey(uid) {
+  return CHAT_STORAGE_PREFIX + (uid || "guest");
+}
+
+// Sanitization, voice selection, and Banglish fallback all live in
+// src/utils/tts.js so they can be unit-tested and reused by other pages.
 
 export default function SymptomChecker() {
+  const toast = useToast();
+  const { currentUser } = useAuth();
   const [input, setInput] = useState("");
-  const [messages, setMessages] = useState([
-    { id: 1, sender: "ai", text: "আস্সালামু আলাইকুম! আপনার কী সমস্যা হচ্ছে? আমি সাহায্য করতে এসেছি। 🌿" }
-  ]);
+  // Lazy init: read chat history from localStorage so the conversation
+  // survives page reloads. Falls back to the welcome message on first visit
+  // or if stored data is corrupt.
+  const [messages, setMessages] = useState(() => {
+    try {
+      const raw = localStorage.getItem(chatKey(currentUser?.uid));
+      if (!raw) return [WELCOME_MSG];
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Normalize: ensure all messages have a usable id/sender/text shape
+        const clean = parsed
+          .filter((m) => m && typeof m === "object" && typeof m.text === "string")
+          .slice(-CHAT_HISTORY_MAX)
+          .map((m, i) => ({
+            id: m.id ?? i + 1,
+            sender: m.sender === "user" ? "user" : "ai",
+            text: String(m.text),
+            warn: !!m.warn,
+          }));
+        if (clean.length > 0) return clean;
+      }
+    } catch (err) {
+      console.warn("Chat history could not be loaded:", err);
+    }
+    return [WELCOME_MSG];
+  });
   const [showChips, setShowChips] = useState(true);
   const [listening, setListening] = useState(false);
   const [recording, setRecording] = useState(false);
   const [loading, setLoading] = useState(false);
+  // TTS is OFF by default — the previous version auto-spoke every reply,
+  // which surprised users in quiet environments. Now user must opt in.
+  const [ttsEnabled, setTtsEnabled] = useState(() => {
+    try { return localStorage.getItem(TTS_STORAGE_KEY) === "1"; }
+    catch { return false; }
+  });
 
   const recogRef = useRef(null);
   const recorderRef = useRef(null);
@@ -18,18 +68,86 @@ export default function SymptomChecker() {
 
   const chips = ["জ্বর", "কাঁপুনি", "বমি", "দুর্বলতা", "ঘাম", "মাথাব্যথা"];
 
-  // Scroll to bottom on new messages
+  // Scroll to bottom on new messages. Use rAF + a second frame so layout has
+  // settled (flex + min-height:0 chains can need a second pass to size
+  // correctly when a long message wraps the line count).
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const scroll = () => {
+      chatEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    };
+    requestAnimationFrame(() => {
+      scroll();
+      requestAnimationFrame(scroll);
+    });
   }, [messages]);
 
-  // Voice synthesis (Text to Speech)
+  // Persist TTS preference
+  useEffect(() => {
+    try { localStorage.setItem(TTS_STORAGE_KEY, ttsEnabled ? "1" : "0"); } catch {}
+    if (!ttsEnabled && "speechSynthesis" in window) window.speechSynthesis.cancel();
+  }, [ttsEnabled]);
+
+  // Persist chat history (per user; key changes when user changes so guest
+  // and authenticated chats never mix). Cap to last N messages to keep
+  // localStorage size predictable.
+  useEffect(() => {
+    try {
+      const capped = messages.slice(-CHAT_HISTORY_MAX);
+      localStorage.setItem(chatKey(currentUser?.uid), JSON.stringify(capped));
+    } catch (err) {
+      // Storage may be full or disabled (private mode). Non-fatal.
+      console.warn("Chat history could not be saved:", err);
+    }
+  }, [messages, currentUser?.uid]);
+
+  // When the user signs in or out, swap the in-memory chat for the
+  // correct bucket so each account sees its own history.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(chatKey(currentUser?.uid));
+      if (!raw) {
+        setMessages([WELCOME_MSG]);
+        return;
+      }
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        setMessages(parsed.slice(-CHAT_HISTORY_MAX));
+      } else {
+        setMessages([WELCOME_MSG]);
+      }
+    } catch {
+      setMessages([WELCOME_MSG]);
+    }
+    // We only want to re-run this on user change, not on every message update.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.uid]);
+
+  function clearHistory() {
+    try {
+      localStorage.removeItem(chatKey(currentUser?.uid));
+    } catch {}
+    setMessages([WELCOME_MSG]);
+    stopSpeaking();
+    toast.success("চ্যাট ইতিহাস মুছে ফেলা হয়েছে");
+  }
+
+  // Voice synthesis (Text to Speech) — only speaks if the user has enabled it.
+  // All sanitization and voice selection is handled by src/utils/tts.js.
+  // The utility ALWAYS speaks (never transliterates, never refuses). If no
+  // Bengali voice is installed, the engine reads Bengali script with its
+  // default voice and may produce garbled output — we surface a non-blocking
+  // hint in that case so the user knows pronunciation may be off.
   function speak(text) {
-    if (!("speechSynthesis" in window)) return;
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "bn-BD";
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
+    if (!ttsEnabled) return;
+    speakTTS(text).then((status) => {
+      if (status === "fallback") {
+        toast.warn(
+          "আপনার ডিভাইসে বাংলা ভয়েস পাওয়া যায়নি — উচ্চারণ সঠিক না হতে পারে। Settings → Language → Text-to-speech output থেকে একটি bn-BD ভয়েস ইনস্টল করলে সেরা ফল পাবেন।"
+        );
+      } else if (status === "unsupported") {
+        toast.warn("এই ব্রাউজারে টেক্সট-টু-স্পিচ সমর্থিত নয়।");
+      }
+    });
   }
 
   // Handle message submission
@@ -95,7 +213,7 @@ export default function SymptomChecker() {
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert("আপনার ব্রাউজারে স্পিচ রিকগনিশন সমর্থন করে না। অনুগ্রহ করে ক্রোম ব্রাউজার ব্যবহার করুন।");
+      toast.error("আপনার ব্রাউজারে স্পিচ রিকগনিশন সমর্থন করে না। অনুগ্রহ করে ক্রোম ব্রাউজার ব্যবহার করুন।");
       return;
     }
 
@@ -161,20 +279,20 @@ export default function SymptomChecker() {
       setRecording(true);
     } catch (err) {
       console.error(err);
-      alert("মাইক্রোফোন অনুমতি দিতে ব্যর্থ হয়েছে।");
+      toast.error("মাইক্রোফোন অনুমতি দিতে ব্যর্থ হয়েছে।");
     }
   }
 
   return (
-    <div className="chat-body" style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+    <div className="chat-body">
       {/* Header */}
-      <div className="chat-hdr" style={{ margin: "-14px -14px 10px -14px" }}>
+      <div className="chat-hdr">
         <div className="chat-avatar">🩺</div>
         <div>
           <div className="chat-name">শুরক্ষা AI ডাক্তার</div>
           <div className="chat-online">● অনলাইন</div>
         </div>
-        <button 
+        <button
           className={`chat-mic ${recording ? "text-red-500 animate-pulse" : ""}`}
           onClick={toggleRecording}
           title="অডিও রেকর্ড করুন (Whisper API)"
@@ -185,10 +303,41 @@ export default function SymptomChecker() {
             <path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
+        <button
+          onClick={() => setTtsEnabled((v) => !v)}
+          aria-pressed={ttsEnabled}
+          aria-label={ttsEnabled ? "স্বয়ং পড়া বন্ধ করুন" : "স্বয়ং পড়া চালু করুন"}
+          title={ttsEnabled ? "স্বয়ং পড়া: চালু" : "স্বয়ং পড়া: বন্ধ"}
+          style={{
+            background: ttsEnabled ? "rgba(255,255,255,0.25)" : "transparent",
+            border: "1px solid rgba(255,255,255,0.3)",
+            color: "white",
+            borderRadius: "999px",
+            padding: "4px 10px",
+            fontSize: "12px",
+            fontWeight: 600,
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "4px"
+          }}
+        >
+          {ttsEnabled ? "🔊 চালু" : "🔇 বন্ধ"}
+        </button>
+        <button
+          onClick={clearHistory}
+          aria-label="চ্যাট ইতিহাস মুছুন"
+          title="চ্যাট ইতিহাস মুছুন"
+          className="chat-clear-btn"
+        >
+          🗑
+        </button>
       </div>
 
-      {/* Messages */}
-      <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: "12px", paddingBottom: "10px" }}>
+      {/* Messages — the ONLY scroll region. flex:1 + min-height:0 makes
+          the parent flex column give this element the remaining space and
+          never grow when new messages arrive. */}
+      <div className="chat-messages">
         {messages.map((m) => (
           <div key={m.id} style={{ alignSelf: m.sender === "user" ? "flex-end" : "flex-start" }}>
             <div className="bubble-sender">{m.sender === "user" ? "আপনি" : "শুরক্ষা AI"}</div>
@@ -204,6 +353,35 @@ export default function SymptomChecker() {
                 </div>
               )}
             </div>
+            {m.sender === "ai" && (
+              <button
+                onClick={() => {
+                  // Allow replay even when auto-speak is off, so the user can
+                  // still hear the answer once without enabling TTS globally.
+                  speakTTS(m.text).then((status) => {
+                    if (status === "fallback") {
+                      toast.warn(
+                        "আপনার ডিভাইসে বাংলা ভয়েস পাওয়া যায়নি — উচ্চারণ সঠিক না হতে পারে। Settings → Language → Text-to-speech output থেকে একটি bn-BD ভয়েস ইনস্টল করলে সেরা ফল পাবেন।"
+                      );
+                    } else if (status === "unsupported") {
+                      toast.warn("এই ব্রাউজারে টেক্সট-টু-স্পিচ সমর্থিত নয়।");
+                    }
+                  });
+                }}
+                title="এই উত্তরটি আবার শুনুন"
+                style={{
+                  marginTop: 4,
+                  fontSize: 10,
+                  color: "var(--text-muted)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 0
+                }}
+              >
+                🔊 শুনুন
+              </button>
+            )}
           </div>
         ))}
         {loading && (
@@ -215,8 +393,9 @@ export default function SymptomChecker() {
         <div ref={chatEndRef} />
       </div>
 
-      {/* Input Row */}
-      <div className="chat-input-row" style={{ margin: "10px -14px -14px -14px" }}>
+      {/* Input Row — flex:0 0 auto so it stays pinned at the bottom and
+          never gets squeezed by the scroll area. */}
+      <div className="chat-input-row">
         <input
           type="text"
           className="chat-box-input"

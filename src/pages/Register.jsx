@@ -186,19 +186,22 @@ export default function Register() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="login-brand">
-          <div className="login-logo">
-            <img 
-              src="/surokkha_ai_logo.PNG" 
-              alt="Shurokkha AI" 
-              style={{ width: "100%", height: "100%", borderRadius: "inherit", objectFit: "contain" }} 
-            />
+        <div className="auth-brand">
+          <div className="login-brand">
+            <div className="login-logo">
+              <img
+                src="/surokkha_ai_logo.PNG"
+                alt="Shurokkha AI"
+                style={{ width: "100%", height: "100%", borderRadius: "inherit", objectFit: "contain" }}
+              />
+            </div>
+            <div className="login-name">শুরক্ষা AI</div>
+            <div className="login-sub">নিবন্ধনের মাধ্যমে শুরু করুন</div>
           </div>
-          <div className="login-name">শুরক্ষা AI</div>
-          <div className="login-sub">নিবন্ধনের মাধ্যমে শুরু করুন</div>
         </div>
 
-        <div className="auth-tabs">
+        <div className="auth-form-section">
+          <div className="auth-tabs">
           <button
             className={authMethod === "phone" ? "auth-tab active" : "auth-tab"}
             onClick={() => switchRegisterMethod("phone")}
@@ -437,9 +440,12 @@ export default function Register() {
             </button>
           </form>
         )}
+        </div>
 
-        <div className="link-row">
-          অ্যাকাউন্ট আছে? <Link to="/login" className="link-text">লগইন করুন</Link>
+        <div className="auth-actions">
+          <div className="link-row">
+            অ্যাকাউন্ট আছে? <Link to="/login" className="link-text">লগইন করুন</Link>
+          </div>
         </div>
       </div>
     </div>

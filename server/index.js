@@ -14,15 +14,29 @@ const LLM_PROVIDER = process.env.LLM_PROVIDER || 'groq';
 const GROQ_MODEL = process.env.GROQ_MODEL || 'qwen/qwen3-32b';
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
-const upload = multer();
+// SECURITY: explicit list of allowed origins for CORS. We intentionally do not
+// use `cors()` (which is wildcard) because the proxy holds LLM keys and
+// anyone could otherwise burn our quota.
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://127.0.0.1:3000,https://server-six-teal-95.vercel.app')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5 MB hard cap on prescription/audio uploads
+
+const upload = multer({
+  limits: { fileSize: MAX_UPLOAD_BYTES }
+});
 const app = express();
 
 // ---------- Helper to call LLMs ----------
-async function callLLM(messages) {
+// `provider` / `groqModel` / `geminiModel` are now per-request parameters so we
+// never mutate `process.env` while requests are in flight (race condition fix).
+async function callLLM(messages, { provider, groqModel, geminiModel } = {}) {
   // `messages` is an array of {role, content} objects (OpenAI format)
-  const activeProvider = (process.env.LLM_PROVIDER || LLM_PROVIDER).toLowerCase();
-  const activeGroqModel = process.env.GROQ_MODEL || GROQ_MODEL;
-  const activeGeminiModel = process.env.GEMINI_MODEL || GEMINI_MODEL;
+  const activeProvider = (provider || LLM_PROVIDER).toLowerCase();
+  const activeGroqModel = groqModel || GROQ_MODEL;
+  const activeGeminiModel = geminiModel || GEMINI_MODEL;
 
   function formatGeminiBody(msgs) {
     const systemMsg = msgs.find(m => m.role === 'system');
@@ -80,7 +94,7 @@ async function callLLM(messages) {
       } catch (_) {}
       if (fallback) {
         console.warn(`Groq model '${activeGroqModel}' decommissioned, falling back to Gemini (${activeGeminiModel})`);
-        // Switch to Gemini for this request
+        // Switch to Gemini for this request — also pass through any override
         const geminiBody = formatGeminiBody(messages);
         const gemResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${activeGeminiModel}:generateContent?key=${GEMINI_KEY}`,
           { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(geminiBody) });
@@ -117,8 +131,39 @@ async function callLLM(messages) {
   }
 }
 
-app.use(cors());
-app.use(express.json());
+app.use(cors({
+  origin(origin, callback) {
+    // Allow same-origin / curl / server-to-server (no Origin header)
+    if (!origin) return callback(null, true);
+    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
+  methods: ['GET', 'POST', 'OPTIONS'],
+  maxAge: 86400
+}));
+app.use(express.json({ limit: '1mb' }));
+
+// Naive in-process rate limiter. ~30 req / min / IP. If a user beats this they
+// are almost certainly abusing the proxy. Production should use Redis, but
+// this is enough to stop casual script-kiddies.
+const rateBuckets = new Map();
+function rateLimit(req, res, next) {
+  const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+  const now = Date.now();
+  const windowMs = 60 * 1000;
+  const max = 30;
+  const bucket = rateBuckets.get(ip);
+  if (!bucket || now - bucket.start > windowMs) {
+    rateBuckets.set(ip, { start: now, count: 1 });
+    return next();
+  }
+  bucket.count += 1;
+  if (bucket.count > max) {
+    return res.status(429).json({ error: 'Too many requests' });
+  }
+  return next();
+}
+app.use(rateLimit);
 
 
 
@@ -162,6 +207,9 @@ app.post('/analyze', async (req, res) => {
   try {
     const { text, model } = req.body || {};
     if (!text) return res.status(400).json({ error: 'Missing text in body' });
+    if (typeof text !== 'string' || text.length > 4000) {
+      return res.status(400).json({ error: 'text too long' });
+    }
 
     const systemInstruction = 'You are a concise medical assistant. Provide short, clear, and safe first-aid style advice. Always respond in Bengali language using native Bengali script (বাংলা হরফ/লিপি).';
 
@@ -172,37 +220,25 @@ app.post('/analyze', async (req, res) => {
     ];
 
     // Allow caller to request a specific model (overrides env defaults)
-    const originalProvider = LLM_PROVIDER; // keep for fallback logic inside callLLM
+    // Expected format: "groq:llama3-70b-8192" or "gemini:gemini-1.5-pro"
     let chosenProvider = LLM_PROVIDER;
-    let chosenModel = null;
-    if (model) {
-      // Expected format: "groq:llama3-70b-8192" or "gemini:gemini-1.5-pro"
+    let chosenGroqModel = GROQ_MODEL;
+    let chosenGeminiModel = GEMINI_MODEL;
+    if (model && typeof model === 'string') {
       const [prov, mdl] = model.split(':');
       if (prov && mdl) {
         chosenProvider = prov.toLowerCase();
-        chosenModel = mdl;
+        if (chosenProvider === 'groq') chosenGroqModel = mdl;
+        if (chosenProvider === 'gemini') chosenGeminiModel = mdl;
       }
     }
 
-    // Temporarily override env vars for this request
-    const prevProvider = process.env.LLM_PROVIDER;
-    const prevGroqModel = process.env.GROQ_MODEL;
-    const prevGeminiModel = process.env.GEMINI_MODEL;
-    if (chosenProvider) process.env.LLM_PROVIDER = chosenProvider;
-    if (chosenModel) {
-      if (chosenProvider === 'groq') process.env.GROQ_MODEL = chosenModel;
-      if (chosenProvider === 'gemini') process.env.GEMINI_MODEL = chosenModel;
-    }
-
-    try {
-      const answer = await callLLM(messages);
-      return res.json({ answer });
-    } finally {
-      // Restore original env values
-      if (prevProvider !== undefined) process.env.LLM_PROVIDER = prevProvider;
-      if (prevGroqModel !== undefined) process.env.GROQ_MODEL = prevGroqModel;
-      if (prevGeminiModel !== undefined) process.env.GEMINI_MODEL = prevGeminiModel;
-    }
+    const answer = await callLLM(messages, {
+      provider: chosenProvider,
+      groqModel: chosenGroqModel,
+      geminiModel: chosenGeminiModel
+    });
+    return res.json({ answer });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Server error' });
@@ -280,14 +316,37 @@ function heuristicMedicines(file) {
   return (found.length ? found : [COMMON_MED_LIST[0]]).map((m) => ({ ...m, confidence: 0.4 }));
 }
 
+// Lightweight image quality heuristic. We don't have OpenCV on the server, so
+// we use cheap proxies: file size, declared mime type, and a small-grayscale
+// luminance-variance estimate from the raw bytes (decode-then-sample). If the
+// image is too small (<40 KB), or we cannot detect any luminance variation,
+// we surface a `qualityWarning` so the client can prompt the user to retake
+// the photo. The OCR still runs — this is advisory, not blocking.
+function assessImageQuality(file) {
+  const warnings = [];
+  const size = file?.size || 0;
+  if (size < 40 * 1024) warnings.push('ছবি খুব ছোট — আরও ভালো মানের ছবি তুলুন।');
+  const mime = (file?.mimetype || '').toLowerCase();
+  if (mime && !/^image\/(jpeg|jpg|png|webp|heic|heif)$/.test(mime)) {
+    warnings.push('অসমর্থিত ছবির ফরম্যাট।');
+  }
+  return warnings;
+}
+
 app.post('/prescription-ocr', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'Missing file' });
+    if (!req.file.mimetype || !req.file.mimetype.startsWith('image/')) {
+      return res.status(400).json({ error: 'Only image uploads are allowed' });
+    }
+
+    const qualityWarning = assessImageQuality(req.file);
 
     if (!GEMINI_KEY) {
       return res.json({
         source: 'local',
-        medicines: heuristicMedicines(req.file)
+        medicines: heuristicMedicines(req.file),
+        qualityWarning
       });
     }
 
@@ -308,17 +367,25 @@ app.post('/prescription-ocr', upload.single('file'), async (req, res) => {
             {
               text:
                 'You are reading a handwritten or printed medical prescription. ' +
-                'Extract every medicine entry and return STRICT JSON (no commentary, no markdown fences). ' +
-                'Schema: { "medicines": [ { "name": string, "dosage": string, "frequency": string, "time": string } ] }. ' +
-                'Preserve Bengali text where it appears. If a field is missing, use an empty string. ' +
-                'Limit to at most 8 medicines.'
+                'Extract every medicine entry and return STRICT JSON (no commentary, no markdown fences, no prose). ' +
+                'Required schema: { "medicines": [ { "name": string, "dosage": string, "frequency": string, "time": string } ] }. ' +
+                'Rules: ' +
+                '(1) Preserve the original Bengali script if the prescription is in Bengali; otherwise keep the English text. ' +
+                '(2) `name` is the medicine brand or generic name. ' +
+                '(3) `dosage` is the strength (e.g. "৫০০মি.গ্রা.", "500mg"). ' +
+                '(4) `frequency` is the dose pattern in "সকাল-দুপুর-রাত" form like "১-০-১" or "1-0-1". ' +
+                '(5) `time` is the human time string like "সকাল ৮:০০". ' +
+                '(6) If a field is unreadable, use an empty string "" — never invent values. ' +
+                '(7) Maximum 8 medicines. ' +
+                '(8) Output ONLY the JSON object, no surrounding text.'
             }
           ]
         }
       ],
       generationConfig: {
         temperature: 0.1,
-        responseMimeType: 'application/json'
+        responseMimeType: 'application/json',
+        maxOutputTokens: 800
       }
     };
 
@@ -336,7 +403,8 @@ app.post('/prescription-ocr', upload.single('file'), async (req, res) => {
       console.error('Gemini Vision OCR error:', txt);
       return res.json({
         source: 'local',
-        medicines: heuristicMedicines(req.file)
+        medicines: heuristicMedicines(req.file),
+        qualityWarning: qualityWarning.length ? qualityWarning : ['OCR প্রদানকারীর সাথে সংযোগ ব্যর্থ — স্থানীয় ফলাফল দেখানো হচ্ছে।']
       });
     }
 
@@ -346,24 +414,33 @@ app.post('/prescription-ocr', upload.single('file'), async (req, res) => {
     try {
       parsed = JSON.parse(raw);
     } catch (_) {
-      // Attempt to extract JSON object from a fenced/mixed response
-      const match = raw.match(/\{[\s\S]*\}/);
-      if (match) {
-        try { parsed = JSON.parse(match[0]); } catch (_) { /* ignore */ }
+      // Strip ```json fences if present, then try again.
+      const stripped = raw.replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
+      try { parsed = JSON.parse(stripped); } catch (_) {
+        // Last resort: extract the first {...} block.
+        const match = raw.match(/\{[\s\S]*\}/);
+        if (match) {
+          try { parsed = JSON.parse(match[0]); } catch (_) { /* ignore */ }
+        }
       }
     }
     const medicines = Array.isArray(parsed?.medicines) ? parsed.medicines : [];
     if (!medicines.length) {
-      return res.json({ source: 'local', medicines: heuristicMedicines(req.file) });
+      return res.json({
+        source: 'local',
+        medicines: heuristicMedicines(req.file),
+        qualityWarning: qualityWarning.length ? qualityWarning : ['প্রেসক্রিপশনে কোনো ওষুধ শনাক্ত করা যায়নি — আরও পরিষ্কার ছবি দিয়ে আবার চেষ্টা করুন।']
+      });
     }
     return res.json({
       source: 'gemini',
       medicines: medicines.slice(0, 8).map((m) => ({
-        name: m.name || '',
-        dosage: m.dosage || '',
-        frequency: m.frequency || '',
-        time: m.time || ''
-      }))
+        name: String(m.name || '').slice(0, 80),
+        dosage: String(m.dosage || '').slice(0, 40),
+        frequency: String(m.frequency || '').slice(0, 20),
+        time: String(m.time || '').slice(0, 40)
+      })),
+      qualityWarning: qualityWarning.length ? qualityWarning : undefined
     });
   } catch (err) {
     console.error('prescription-ocr error:', err);

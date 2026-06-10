@@ -1,13 +1,11 @@
-import React, { useState, useEffect, useRef } from "react";
+﻿import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { useToast } from "../contexts/ToastContext";
 import { storage } from "../firebase/config";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import {
   getUserProfile,
   getUserPhoto,
   saveUserPhoto,
-  saveUserProfile,
   getVitalsHistory,
   subscribeReminders,
   addReminder,
@@ -16,7 +14,6 @@ import {
   updateAuthProfile
 } from "../firebase/dbService";
 import { useNavigate, Link } from "react-router-dom";
-import Skeleton from "../components/Skeleton";
 import { fetchCurrentWeather } from "../utils/weather";
 import { measureHeartRate, estimateBloodPressure } from "../utils/healthMeasure";
 import { analyzePrescriptionAPI } from "../utils/ai";
@@ -46,9 +43,9 @@ import {
 } from "../utils/nutritionCalculator";
 
 function intensityBn(level) {
-  if (level === "mild") return "হালকা";
-  if (level === "moderate") return "মাঝারি";
-  return "তীব্র";
+  if (level === "mild") return "à¦¹à¦¾à¦²à¦•à¦¾";
+  if (level === "moderate") return "à¦®à¦¾à¦à¦¾à¦°à¦¿";
+  return "à¦¤à§€à¦¬à§à¦°";
 }
 
 function Meter({ label, value, color }) {
@@ -66,7 +63,6 @@ function Meter({ label, value, color }) {
 
 export default function Profile() {
   const { currentUser, logout, updateAuthProfile: updateAuthCtx } = useAuth();
-  const toast = useToast();
   const navigate = useNavigate();
 
   const [profile, setProfile] = useState(null);
@@ -80,9 +76,9 @@ export default function Profile() {
   });
 
   const [reminders, setReminders] = useState([
-    { id: 1, label: "প্যারাসিটামল ৫০০মি.গ্রা.", time: "সকাল ৮:০০", done: true, icon: "💊", color: "purple" },
-    { id: 2, label: "পানি পান করুন", time: "দুপুর ১২:০০", done: false, icon: "💧", color: "blue" },
-    { id: 3, label: "রক্তচাপ পরীক্ষা", time: "বিকাল ৫:০০", done: false, icon: "❤️", color: "red" }
+    { id: 1, label: "à¦ªà§à¦¯à¦¾à¦°à¦¾à¦¸à¦¿à¦Ÿà¦¾à¦®à¦² à§«à§¦à§¦à¦®à¦¿.à¦—à§à¦°à¦¾.", time: "à¦¸à¦•à¦¾à¦² à§®:à§¦à§¦", done: true, icon: "ðŸ’Š", color: "purple" },
+    { id: 2, label: "à¦ªà¦¾à¦¨à¦¿ à¦ªà¦¾à¦¨ à¦•à¦°à§à¦¨", time: "à¦¦à§à¦ªà§à¦° à§§à§¨:à§¦à§¦", done: false, icon: "ðŸ’§", color: "blue" },
+    { id: 3, label: "à¦°à¦•à§à¦¤à¦šà¦¾à¦ª à¦ªà¦°à§€à¦•à§à¦·à¦¾", time: "à¦¬à¦¿à¦•à¦¾à¦² à§«:à§¦à§¦", done: false, icon: "â¤ï¸", color: "red" }
   ]);
 
   const [activeModal, setActiveModal] = useState(null);
@@ -93,7 +89,7 @@ export default function Profile() {
   const [ocrFileName, setOcrFileName] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // ── Mental health assessment state ────────────────────────
+  // â”€â”€ Mental health assessment state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // step: 'intro' | 'game' | 'quiz' | 'result'
   const [mhStep, setMhStep] = useState("intro");
   const [mhGame, setMhGame] = useState(makeEmptySessionState());
@@ -103,7 +99,7 @@ export default function Profile() {
   const [mhLoading, setMhLoading] = useState(false);
   const mhGameTimers = useRef([]);                // active setTimeout handles
 
-  // ── Nutrition planner state ───────────────────────────────
+  // â”€â”€ Nutrition planner state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // step: 'form' | 'result'
   const [nutStep, setNutStep] = useState("form");
   const [nutInput, setNutInput] = useState({
@@ -118,35 +114,23 @@ export default function Profile() {
   const [nutErrors, setNutErrors] = useState({});
   const [nutCalculating, setNutCalculating] = useState(false);
 
-  // ── Profile photo ──────────────────────────────────────────
+  // â”€â”€ Profile photo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [photoURL, setPhotoURL] = useState(null);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [photoError, setPhotoError] = useState(null);
   const photoInputRef = useRef(null);
 
-  // ── Weather ────────────────────────────────────────────────
+  // â”€â”€ Weather â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [weather, setWeather] = useState(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
 
-  // ── Heart-rate (PPG) measurement ───────────────────────────
+  // â”€â”€ Heart-rate (PPG) measurement â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [hrState, setHrState] = useState({ status: "idle", elapsed: 0, bpm: null, progress: 0 });
   const hrVideoRef = useRef(null);
   const stopMeasureRef = useRef(null); // canceller returned by measureHeartRate
 
-  // ── Blood-pressure result ──────────────────────────────────
+  // â”€â”€ Blood-pressure result â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [bloodState, setBloodState] = useState({ status: "idle", busy: false, systolic: null, diastolic: null, hr: null, hrv: null });
-
-  // ── Profile edit modal ───────────────────────────────────────
-  const [editingProfile, setEditingProfile] = useState(false);
-  const [profileDraft, setProfileDraft] = useState({ name: "", age: "", bloodGroup: "", location: "", phone: "" });
-  const [profileSaving, setProfileSaving] = useState(false);
-  const [profileError, setProfileError] = useState("");
-
-  // ── Reminder add/edit modal ──────────────────────────────────
-  const [reminderEdit, setReminderEdit] = useState(null); // null = closed, {} = new, {id,...} = edit
-  const [reminderDraft, setReminderDraft] = useState({ label: "", time: "", icon: "💊", color: "purple" });
-  const [reminderSaving, setReminderSaving] = useState(false);
-  const [reminderError, setReminderError] = useState("");
 
   // Load saved photo (Firestore) and weather on mount
   useEffect(() => {
@@ -195,10 +179,10 @@ export default function Profile() {
   function compressImage(file, maxBytes = 500 * 1024) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onerror = () => reject(new Error("ফাইল পড়া যায়নি"));
+      reader.onerror = () => reject(new Error("à¦«à¦¾à¦‡à¦² à¦ªà¦¡à¦¼à¦¾ à¦¯à¦¾à¦¯à¦¼à¦¨à¦¿"));
       reader.onload = () => {
         const img = new Image();
-        img.onerror = () => reject(new Error("ছবি লোড করা যায়নি"));
+        img.onerror = () => reject(new Error("à¦›à¦¬à¦¿ à¦²à§‹à¦¡ à¦•à¦°à¦¾ à¦¯à¦¾à¦¯à¦¼à¦¨à¦¿"));
         img.onload = () => {
           // Try descending quality + max-edge until the JPEG fits
           const tryEncode = (maxEdge, quality) =>
@@ -219,7 +203,7 @@ export default function Profile() {
             for (const s of sizes) {
               for (const q of qualities) {
                 const dataUrl = await tryEncode(s, q);
-                // base64 length * 0.75 ≈ byte size
+                // base64 length * 0.75 â‰ˆ byte size
                 const approxBytes = Math.floor(dataUrl.length * 0.75);
                 if (approxBytes <= maxBytes) return resolve(dataUrl);
               }
@@ -239,12 +223,12 @@ export default function Profile() {
     if (!file) return;
     if (!currentUser) return;
     if (!file.type.startsWith("image/")) {
-      setPhotoError("শুধু ছবি ফাইল আপলোড করুন (jpg, png, webp...)");
+      setPhotoError("à¦¶à§à¦§à§ à¦›à¦¬à¦¿ à¦«à¦¾à¦‡à¦² à¦†à¦ªà¦²à§‹à¦¡ à¦•à¦°à§à¦¨ (jpg, png, webp...)");
       e.target.value = "";
       return;
     }
     if (file.size > 10 * 1024 * 1024) {
-      setPhotoError("ফাইল ১০ MB এর বেশি। ছোট ছবি বেছে নিন।");
+      setPhotoError("à¦«à¦¾à¦‡à¦² à§§à§¦ MB à¦à¦° à¦¬à§‡à¦¶à¦¿à¥¤ à¦›à§‹à¦Ÿ à¦›à¦¬à¦¿ à¦¬à§‡à¦›à§‡ à¦¨à¦¿à¦¨à¥¤");
       e.target.value = "";
       return;
     }
@@ -275,14 +259,14 @@ export default function Profile() {
       console.warn("Storage upload failed, trying compressed local fallback:", uploadErr.message);
     }
 
-    // 2) Fallback — compress to a small JPEG and store in localStorage
+    // 2) Fallback â€” compress to a small JPEG and store in localStorage
     try {
       const dataUrl = await compressImage(file, 400 * 1024);
       setPhotoURL(dataUrl);
       // dbService.saveUserPhoto mirrors to localStorage (and tries Firestore)
       const result = await saveUserPhoto(currentUser.uid, dataUrl);
       if (!result || !result.ok) {
-        setPhotoError("ছবিটি এই সেশনের জন্য দেখানো হচ্ছে, সেভ হবে না (localStorage সীমা পূর্ণ)।");
+        setPhotoError("à¦›à¦¬à¦¿à¦Ÿà¦¿ à¦à¦‡ à¦¸à§‡à¦¶à¦¨à§‡à¦° à¦œà¦¨à§à¦¯ à¦¦à§‡à¦–à¦¾à¦¨à§‹ à¦¹à¦šà§à¦›à§‡, à¦¸à§‡à¦­ à¦¹à¦¬à§‡ à¦¨à¦¾ (localStorage à¦¸à§€à¦®à¦¾ à¦ªà§‚à¦°à§à¦£)à¥¤");
       } else {
         // Best-effort mirror to Auth profile (non-blocking)
         try {
@@ -294,7 +278,7 @@ export default function Profile() {
       }
     } catch (compressErr) {
       console.error("Image compression failed:", compressErr);
-      setPhotoError("ছবি প্রসেস করা যায়নি। অনুগ্রহ করে অন্য ছবি চেষ্টা করুন।");
+      setPhotoError("à¦›à¦¬à¦¿ à¦ªà§à¦°à¦¸à§‡à¦¸ à¦•à¦°à¦¾ à¦¯à¦¾à¦¯à¦¼à¦¨à¦¿à¥¤ à¦…à¦¨à§à¦—à§à¦°à¦¹ à¦•à¦°à§‡ à¦…à¦¨à§à¦¯ à¦›à¦¬à¦¿ à¦šà§‡à¦·à§à¦Ÿà¦¾ à¦•à¦°à§à¦¨à¥¤");
     } finally {
       setPhotoUploading(false);
       e.target.value = ""; // allow re-selecting the same file
@@ -302,7 +286,7 @@ export default function Profile() {
   }
 
   // Trigger the hidden file input (works on iOS Safari where nested <label><input>
-  // can be flaky — clicking the button and programmatically opening the input is reliable).
+  // can be flaky â€” clicking the button and programmatically opening the input is reliable).
   function openPhotoPicker() {
     setPhotoError(null);
     if (photoInputRef.current) {
@@ -350,7 +334,7 @@ export default function Profile() {
 
   async function startBloodPressure() {
     if (!hrState.bpm) {
-      toast.warning("প্রথমে হার্টরেট পরিমাপ করুন।");
+      alert("à¦ªà§à¦°à¦¥à¦®à§‡ à¦¹à¦¾à¦°à§à¦Ÿà¦°à§‡à¦Ÿ à¦ªà¦°à¦¿à¦®à¦¾à¦ª à¦•à¦°à§à¦¨à¥¤");
       return;
     }
     const age = parseInt(profile?.age, 10) || 40;
@@ -379,7 +363,7 @@ export default function Profile() {
     setActiveModal(null);
   }
 
-  // ── Mental-health: brain game handlers ────────────────────
+  // â”€â”€ Mental-health: brain game handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function cancelMentalTimers() {
     mhGameTimers.current.forEach((t) => clearTimeout(t));
     mhGameTimers.current = [];
@@ -405,7 +389,7 @@ export default function Profile() {
       round.shownAt = Date.now();
       setMhGame((g) => ({ ...g, phase: "live" }));
       const t2 = setTimeout(() => {
-        // No response within window → miss
+        // No response within window â†’ miss
         if (round.outcome === null) {
           round.respondedAt = round.shownAt + GAME_CONFIG.responseWindowMs;
           round.outcome = "miss";
@@ -473,7 +457,7 @@ export default function Profile() {
     setMhResult(null);
   }
 
-  // ── Nutrition planner handlers ──────────────────────────────
+  // â”€â”€ Nutrition planner handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function handleNutInput(field, value) {
     setNutInput((prev) => ({ ...prev, [field]: value }));
     if (nutErrors[field]) {
@@ -527,14 +511,14 @@ export default function Profile() {
         if (cancelled) return;
         setProfile(
           userProfile || {
-            name: currentUser.email?.split("@")[0] || "ব্যবহারকারী",
+            name: currentUser.email?.split("@")[0] || "à¦¬à§à¦¯à¦¬à¦¹à¦¾à¦°à¦•à¦¾à¦°à§€",
             age: "N/A",
             bloodGroup: "N/A",
-            location: "বাংলাদেশ"
+            location: "à¦¬à¦¾à¦‚à¦²à¦¾à¦¦à§‡à¦¶"
           }
         );
 
-        // Vitals — dbService.getVitalsHistory returns newest-first array
+        // Vitals â€” dbService.getVitalsHistory returns newest-first array
         const records = await getVitalsHistory(currentUser.uid, 30);
         if (cancelled) return;
         if (Array.isArray(records) && records.length > 0) {
@@ -556,7 +540,7 @@ export default function Profile() {
     return () => { cancelled = true; };
   }, [currentUser]);
 
-  // Toggle reminder completion — persisted via dbService
+  // Toggle reminder completion â€” persisted via dbService
   async function toggleReminder(id) {
     if (!currentUser) return;
     const target = reminders.find((r) => r.id === id);
@@ -576,7 +560,7 @@ export default function Profile() {
     }
   }
 
-  // Delete a reminder — persisted via dbService
+  // Delete a reminder â€” persisted via dbService
   async function handleDeleteReminder(id) {
     if (!currentUser) return;
     // Optimistic removal
@@ -605,138 +589,6 @@ export default function Profile() {
     }
   }
 
-  // ── Profile edit handlers ─────────────────────────────────────
-  function openProfileEdit() {
-    setProfileDraft({
-      name: profile?.name || "",
-      age: profile?.age || "",
-      bloodGroup: profile?.bloodGroup || "",
-      location: profile?.location || "",
-      phone: profile?.phone || ""
-    });
-    setProfileError("");
-    setEditingProfile(true);
-  }
-
-  function closeProfileEdit() {
-    if (profileSaving) return;
-    setEditingProfile(false);
-    setProfileError("");
-  }
-
-  function setProfileField(field, value) {
-    setProfileDraft((prev) => ({ ...prev, [field]: value }));
-  }
-
-  async function saveProfileEdit(e) {
-    e?.preventDefault?.();
-    if (!currentUser) return;
-    setProfileSaving(true);
-    setProfileError("");
-    try {
-      const payload = {
-        name: String(profileDraft.name || "").trim() || (currentUser.email?.split("@")[0] || "ব্যবহারকারী"),
-        age: String(profileDraft.age || "").trim() || "N/A",
-        bloodGroup: String(profileDraft.bloodGroup || "").trim() || "N/A",
-        location: String(profileDraft.location || "").trim() || "বাংলাদেশ",
-        phone: String(profileDraft.phone || "").trim() || ""
-      };
-      const res = await saveUserProfile(currentUser.uid, payload);
-      if (!res || !res.ok) {
-        setProfileError("সংরক্ষণ ব্যর্থ হয়েছে। আবার চেষ্টা করুন।");
-        return;
-      }
-      setProfile(payload);
-      setEditingProfile(false);
-    } catch (err) {
-      console.error("saveProfileEdit failed:", err);
-      setProfileError("সংরক্ষণ ব্যর্থ হয়েছে।");
-    } finally {
-      setProfileSaving(false);
-    }
-  }
-
-  // ── Reminder add/edit handlers ────────────────────────────────
-  function openReminderCreate() {
-    setReminderDraft({ label: "", time: "", icon: "💊", color: "purple" });
-    setReminderError("");
-    setReminderEdit({ __new: true });
-  }
-
-  function openReminderEdit(rem) {
-    setReminderDraft({
-      label: rem.label || "",
-      time: rem.time || "",
-      icon: rem.icon || "💊",
-      color: rem.color || "purple"
-    });
-    setReminderError("");
-    setReminderEdit(rem);
-  }
-
-  function closeReminderEdit() {
-    if (reminderSaving) return;
-    setReminderEdit(null);
-    setReminderError("");
-  }
-
-  function setReminderField(field, value) {
-    setReminderDraft((prev) => ({ ...prev, [field]: value }));
-  }
-
-  const REMINDER_ICONS = ["💊", "💧", "🩺", "🏃", "🛌", "🍎", "☕", "🧘"];
-  const REMINDER_COLORS = ["purple", "blue", "red", "green", "orange", "pink"];
-
-  async function saveReminderEdit(e) {
-    e?.preventDefault?.();
-    if (!currentUser) return;
-    if (!String(reminderDraft.label || "").trim()) {
-      setReminderError("রিমাইন্ডারের নাম দিন।");
-      return;
-    }
-    setReminderSaving(true);
-    setReminderError("");
-    try {
-      const payload = {
-        label: String(reminderDraft.label).trim(),
-        time: String(reminderDraft.time || "").trim(),
-        icon: reminderDraft.icon || "💊",
-        color: reminderDraft.color || "purple",
-        done: false
-      };
-      if (reminderEdit && reminderEdit.__new) {
-        const res = await addReminder(currentUser.uid, payload);
-        if (res && res.ok && res.item) {
-          setReminders((prev) => [...prev, res.item]);
-        } else {
-          // Fallback local-only add
-          setReminders((prev) => [
-            ...prev,
-            { id: "local_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7), ...payload }
-          ]);
-        }
-      } else if (reminderEdit && reminderEdit.id) {
-        const res = await updateReminder(currentUser.uid, reminderEdit.id, payload);
-        if (res && res.ok) {
-          setReminders((prev) =>
-            prev.map((r) => (r.id === reminderEdit.id ? { ...r, ...payload } : r))
-          );
-        } else {
-          setReminders((prev) =>
-            prev.map((r) => (r.id === reminderEdit.id ? { ...r, ...payload } : r))
-          );
-          console.warn("updateReminder did not persist, kept local state.");
-        }
-      }
-      setReminderEdit(null);
-    } catch (err) {
-      console.error("saveReminderEdit failed:", err);
-      setReminderError("সংরক্ষণ ব্যর্থ হয়েছে।");
-    } finally {
-      setReminderSaving(false);
-    }
-  }
-
   // Simulate OCR scanning
   function handleOcrUpload(e) {
     const file = e.target.files[0];
@@ -744,7 +596,7 @@ export default function Profile() {
 
     // Image-only validation
     if (!file.type.startsWith("image/")) {
-      setOcrStatus("শুধু ছবি ফাইল গ্রহণযোগ্য (JPG/PNG)।");
+      setOcrStatus("à¦¶à§à¦§à§ à¦›à¦¬à¦¿ à¦«à¦¾à¦‡à¦² à¦—à§à¦°à¦¹à¦£à¦¯à§‹à¦—à§à¦¯ (JPG/PNG)à¥¤");
       setOcrResult(null);
       setOcrProgress(0);
       setOcrError("invalid_type");
@@ -752,7 +604,7 @@ export default function Profile() {
       return;
     }
     if (file.size > 8 * 1024 * 1024) {
-      setOcrStatus("ছবি ৮ MB এর বেশি হওয়া যাবে না।");
+      setOcrStatus("à¦›à¦¬à¦¿ à§® MB à¦à¦° à¦¬à§‡à¦¶à¦¿ à¦¹à¦“à¦¯à¦¼à¦¾ à¦¯à¦¾à¦¬à§‡ à¦¨à¦¾à¥¤");
       setOcrResult(null);
       setOcrProgress(0);
       setOcrError("too_large");
@@ -761,7 +613,7 @@ export default function Profile() {
     }
 
     setOcrFileName(file.name);
-    setOcrStatus("প্রেসক্রিপশন স্ক্যান করা হচ্ছে...");
+    setOcrStatus("à¦ªà§à¦°à§‡à¦¸à¦•à§à¦°à¦¿à¦ªà¦¶à¦¨ à¦¸à§à¦•à§à¦¯à¦¾à¦¨ à¦•à¦°à¦¾ à¦¹à¦šà§à¦›à§‡...");
     setOcrResult(null);
     setOcrProgress(8);
     setOcrError(null);
@@ -771,22 +623,22 @@ export default function Profile() {
     })
       .then((resp) => {
         if (!resp || resp.ok === false) {
-          setOcrError(resp?.error || "OCR ব্যর্থ হয়েছে");
-          setOcrStatus("স্ক্যান ব্যর্থ — আবার চেষ্টা করুন");
+          setOcrError(resp?.error || "OCR à¦¬à§à¦¯à¦°à§à¦¥ à¦¹à¦¯à¦¼à§‡à¦›à§‡");
+          setOcrStatus("à¦¸à§à¦•à§à¦¯à¦¾à¦¨ à¦¬à§à¦¯à¦°à§à¦¥ â€” à¦†à¦¬à¦¾à¦° à¦šà§‡à¦·à§à¦Ÿà¦¾ à¦•à¦°à§à¦¨");
           return;
         }
         setOcrResult(resp);
         const count = resp.medicines?.length || 0;
         setOcrStatus(
           count
-            ? `স্ক্যান সম্পন্ন! ${count}টি ওষুধ পাওয়া গেছে।`
-            : "কোনো ওষুধ পাওয়া যায়নি — ম্যানুয়ালি যোগ করুন।"
+            ? `à¦¸à§à¦•à§à¦¯à¦¾à¦¨ à¦¸à¦®à§à¦ªà¦¨à§à¦¨! ${count}à¦Ÿà¦¿ à¦“à¦·à§à¦§ à¦ªà¦¾à¦“à¦¯à¦¼à¦¾ à¦—à§‡à¦›à§‡à¥¤`
+            : "à¦•à§‹à¦¨à§‹ à¦“à¦·à§à¦§ à¦ªà¦¾à¦“à¦¯à¦¼à¦¾ à¦¯à¦¾à¦¯à¦¼à¦¨à¦¿ â€” à¦®à§à¦¯à¦¾à¦¨à§à¦¯à¦¼à¦¾à¦²à¦¿ à¦¯à§‹à¦— à¦•à¦°à§à¦¨à¥¤"
         );
       })
       .catch((err) => {
         console.error("OCR error:", err);
-        setOcrError(err?.message || "OCR ব্যর্থ হয়েছে");
-        setOcrStatus("স্ক্যান ব্যর্থ — আবার চেষ্টা করুন");
+        setOcrError(err?.message || "OCR à¦¬à§à¦¯à¦°à§à¦¥ à¦¹à¦¯à¦¼à§‡à¦›à§‡");
+        setOcrStatus("à¦¸à§à¦•à§à¦¯à¦¾à¦¨ à¦¬à§à¦¯à¦°à§à¦¥ â€” à¦†à¦¬à¦¾à¦° à¦šà§‡à¦·à§à¦Ÿà¦¾ à¦•à¦°à§à¦¨");
       })
       .finally(() => {
         // Reset input so the same file can be re-selected
@@ -797,7 +649,7 @@ export default function Profile() {
   function handleOcrRetry() {
     setOcrResult(null);
     setOcrError(null);
-    setOcrStatus("আবার স্ক্যান করতে নতুন ছবি আপলোড করুন।");
+    setOcrStatus("à¦†à¦¬à¦¾à¦° à¦¸à§à¦•à§à¦¯à¦¾à¦¨ à¦•à¦°à¦¤à§‡ à¦¨à¦¤à§à¦¨ à¦›à¦¬à¦¿ à¦†à¦ªà¦²à§‹à¦¡ à¦•à¦°à§à¦¨à¥¤");
     setOcrProgress(0);
     setOcrFileName("");
   }
@@ -809,7 +661,7 @@ export default function Profile() {
       label: `${med.name}${med.dosage ? " " + med.dosage : ""}`,
       time: med.time || "",
       done: false,
-      icon: "💊",
+      icon: "ðŸ’Š",
       color: "purple",
       source: "ocr"
     };
@@ -848,7 +700,7 @@ export default function Profile() {
     return (
       <div className="loading-container">
         <div className="spinner"></div>
-        <div>লোড করা হচ্ছে...</div>
+        <div>à¦²à§‹à¦¡ à¦•à¦°à¦¾ à¦¹à¦šà§à¦›à§‡...</div>
       </div>
     );
   }
@@ -862,20 +714,20 @@ export default function Profile() {
             {photoURL ? (
               <img src={photoURL} alt="profile" className="profile-avatar-img" />
             ) : (
-              "👩"
+              "ðŸ‘©"
             )}
           </div>
           <button
             type="button"
             className="avatar-upload-btn"
-            title="ছবি আপলোড করুন"
-            aria-label="ছবি আপলোড করুন"
+            title="à¦›à¦¬à¦¿ à¦†à¦ªà¦²à§‹à¦¡ à¦•à¦°à§à¦¨"
+            aria-label="à¦›à¦¬à¦¿ à¦†à¦ªà¦²à§‹à¦¡ à¦•à¦°à§à¦¨"
             onClick={openPhotoPicker}
             disabled={photoUploading}
           >
-            {photoUploading ? "…" : "✎"}
+            {photoUploading ? "â€¦" : "âœŽ"}
           </button>
-          {/* Hidden file input controlled by a ref — more reliable than <label><input> on mobile */}
+          {/* Hidden file input controlled by a ref â€” more reliable than <label><input> on mobile */}
           <input
             ref={photoInputRef}
             type="file"
@@ -899,35 +751,25 @@ export default function Profile() {
               maxWidth: 240
             }}
             onClick={() => setPhotoError(null)}
-            title="বন্ধ করতে ক্লিক করুন"
+            title="à¦¬à¦¨à§à¦§ à¦•à¦°à¦¤à§‡ à¦•à§à¦²à¦¿à¦• à¦•à¦°à§à¦¨"
           >
-            ⚠ {photoError}
+            âš  {photoError}
           </div>
         )}
-        {profile === null ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 10, alignItems: "center" }}>
-            <Skeleton width={140} height={18} style={{ background: "rgba(255,255,255,0.35)" }} />
-            <Skeleton width={200} height={10} style={{ background: "rgba(255,255,255,0.25)" }} />
-            <Skeleton width={160} height={10} style={{ background: "rgba(255,255,255,0.25)" }} />
-          </div>
-        ) : (
-          <>
-        <div className="profile-name">{profile?.name || "ব্যবহারকারী"}</div>
+        <div className="profile-name">{profile?.name || "à¦¬à§à¦¯à¦¬à¦¹à¦¾à¦°à¦•à¦¾à¦°à§€"}</div>
         <div className="profile-age">
-          বয়স: {profile?.age || "N/A"} বছর · রক্তের গ্রুপ: {profile?.bloodGroup || "N/A"} · {profile?.location || "বাংলাদেশ"}
+          à¦¬à¦¯à¦¼à¦¸: {profile?.age || "N/A"} à¦¬à¦›à¦° Â· à¦°à¦•à§à¦¤à§‡à¦° à¦—à§à¦°à§à¦ª: {profile?.bloodGroup || "N/A"} Â· {profile?.location || "à¦¬à¦¾à¦‚à¦²à¦¾à¦¦à§‡à¦¶"}
         </div>
         <div className="profile-phone">
-          যোগাযোগ: {currentUser?.email || currentUser?.phoneNumber || profile?.phone || "N/A"}
+          à¦¯à§‹à¦—à¦¾à¦¯à§‹à¦—: {currentUser?.email || currentUser?.phoneNumber || profile?.phone || "N/A"}
         </div>
-          </>
-        )}
         <button 
-          onClick={handleSignOut}
+          onClick={handleSignOut} 
           style={{ 
             marginTop: "10px", 
-            background: "rgba(255,255,255,0.2)",
-            color: "white",
-            border: "none",
+            background: "rgba(255,255,255,0.2)", 
+            color: "white", 
+            border: "none", 
             borderRadius: "var(--r-xs)",
             padding: "4px 10px",
             fontSize: "9px",
@@ -935,51 +777,32 @@ export default function Profile() {
             cursor: "pointer"
           }}
         >
-          লগআউট করুন
-        </button>
-        <button
-          onClick={openProfileEdit}
-          aria-label="প্রোফাইল সম্পাদনা"
-          title="প্রোফাইল সম্পাদনা"
-          style={{
-            marginTop: "10px",
-            marginLeft: "8px",
-            background: "rgba(255,255,255,0.3)",
-            color: "white",
-            border: "1px solid rgba(255,255,255,0.5)",
-            borderRadius: "var(--r-xs)",
-            padding: "4px 10px",
-            fontSize: "9px",
-            fontWeight: "600",
-            cursor: "pointer"
-          }}
-        >
-          ✏️ সম্পাদনা
+          à¦²à¦—à¦†à¦‰à¦Ÿ à¦•à¦°à§à¦¨
         </button>
       </div>
 
       {/* Vitals Metrics Grid */}
       {!hasTodayEntry && (
         <div className="empty-vitals-card">
-          🩺 আজকের জন্য এখনও কোনো তথ্য যোগ করা হয়নি।
+          ðŸ©º à¦†à¦œà¦•à§‡à¦° à¦œà¦¨à§à¦¯ à¦à¦–à¦¨à¦“ à¦•à§‹à¦¨à§‹ à¦¤à¦¥à§à¦¯ à¦¯à§‹à¦— à¦•à¦°à¦¾ à¦¹à¦¯à¦¼à¦¨à¦¿à¥¤
         </div>
       )}
 
       <div className="metrics-row" style={{marginTop:"10px"}}>
         <div className="metric-pill">
-          <div className="metric-val">{vitals.temperature}°C</div>
-          <div className="metric-lbl">তাপমাত্রা</div>
+          <div className="metric-val">{vitals.temperature}Â°C</div>
+          <div className="metric-lbl">à¦¤à¦¾à¦ªà¦®à¦¾à¦¤à§à¦°à¦¾</div>
         </div>
         <div className="metric-pill">
           {/* Highlight blood pressure if abnormal */}
           <div className={`metric-val ${vitals.bloodPressure !== "120/80" ? "warn" : ""}`}>
             {vitals.bloodPressure}
           </div>
-          <div className="metric-lbl">রক্তচাপ</div>
+          <div className="metric-lbl">à¦°à¦•à§à¦¤à¦šà¦¾à¦ª</div>
         </div>
         <div className="metric-pill">
           <div className="metric-val">{vitals.oxygen}%</div>
-          <div className="metric-lbl">অক্সিজেন</div>
+          <div className="metric-lbl">à¦…à¦•à§à¦¸à¦¿à¦œà§‡à¦¨</div>
         </div>
       </div>
 
@@ -1000,7 +823,7 @@ export default function Profile() {
             boxShadow: "0 2px 6px rgba(24,95,165,0.2)"
           }}
         >
-          📝 আজকের নতুন তথ্য যোগ করুন
+          ðŸ“ à¦†à¦œà¦•à§‡à¦° à¦¨à¦¤à§à¦¨ à¦¤à¦¥à§à¦¯ à¦¯à§‹à¦— à¦•à¦°à§à¦¨
         </Link>
       </div>
 
@@ -1008,19 +831,19 @@ export default function Profile() {
       {weather && (
         <div className="weather-card">
           <div className="weather-icon">
-            {weather.description?.toLowerCase().includes("rain") ? "🌧️"
-              : weather.description?.toLowerCase().includes("cloud") ? "⛅"
-              : weather.description?.toLowerCase().includes("clear") ? "☀️"
-              : "🌤️"}
+            {weather.description?.toLowerCase().includes("rain") ? "ðŸŒ§ï¸"
+              : weather.description?.toLowerCase().includes("cloud") ? "â›…"
+              : weather.description?.toLowerCase().includes("clear") ? "â˜€ï¸"
+              : "ðŸŒ¤ï¸"}
           </div>
           <div className="weather-info">
             <div className="weather-temp">
-              {Math.round(weather.temp)}°C
-              {weather.source === "fallback" && <span style={{ fontSize: "10px", opacity: 0.7, marginLeft: 6 }}>(আনুমানিক)</span>}
+              {Math.round(weather.temp)}Â°C
+              {weather.source === "fallback" && <span style={{ fontSize: "10px", opacity: 0.7, marginLeft: 6 }}>(à¦†à¦¨à§à¦®à¦¾à¦¨à¦¿à¦•)</span>}
             </div>
-            <div className="weather-loc">📍 {weather.city || "আপনার এলাকা"} · {weather.description}</div>
+            <div className="weather-loc">ðŸ“ {weather.city || "à¦†à¦ªà¦¨à¦¾à¦° à¦à¦²à¦¾à¦•à¦¾"} Â· {weather.description}</div>
             <div className="weather-meta">
-              অনুভূতি: {Math.round(weather.feelsLike)}°C · আর্দ্রতা: {weather.humidity}%
+              à¦…à¦¨à§à¦­à§‚à¦¤à¦¿: {Math.round(weather.feelsLike)}Â°C Â· à¦†à¦°à§à¦¦à§à¦°à¦¤à¦¾: {weather.humidity}%
             </div>
           </div>
           {weatherLoading && <div className="spinner" style={{ width: 16, height: 16, borderLeftColor: "#fff" }} />}
@@ -1028,329 +851,66 @@ export default function Profile() {
       )}
 
       {/* Health Measurement buttons */}
-      <div className="section-head">💓 স্বাস্থ্য পরিমাপ</div>
+      <div className="section-head">ðŸ’“ à¦¸à§à¦¬à¦¾à¦¸à§à¦¥à§à¦¯ à¦ªà¦°à¦¿à¦®à¦¾à¦ª</div>
       <div className="measure-row">
         <button className="measure-btn" onClick={() => setActiveModal("heart")}>
-          <span className="mb-icon">❤️</span>
-          হার্টরেট মাপুন
-          <span className="mb-sub">ক্যামেরা PPG</span>
+          <span className="mb-icon">â¤ï¸</span>
+          à¦¹à¦¾à¦°à§à¦Ÿà¦°à§‡à¦Ÿ à¦®à¦¾à¦ªà§à¦¨
+          <span className="mb-sub">à¦•à§à¦¯à¦¾à¦®à§‡à¦°à¦¾ PPG</span>
         </button>
         <button className="measure-btn" onClick={() => setActiveModal("blood")}>
-          <span className="mb-icon">🩸</span>
-          রক্তচাপ দেখুন
-          <span className="mb-sub">অনুমান ভিত্তিক</span>
+          <span className="mb-icon">ðŸ©¸</span>
+          à¦°à¦•à§à¦¤à¦šà¦¾à¦ª à¦¦à§‡à¦–à§à¦¨
+          <span className="mb-sub">à¦…à¦¨à§à¦®à¦¾à¦¨ à¦­à¦¿à¦¤à§à¦¤à¦¿à¦•</span>
         </button>
       </div>
 
       {/* Today's Reminders list */}
-      <div className="section-head" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span>⏰ আজকের রিমাইন্ডার</span>
-        <button
-          type="button"
-          onClick={openReminderCreate}
-          aria-label="নতুন রিমাইন্ডার যোগ করুন"
-          title="নতুন রিমাইন্ডার"
-          style={{
-            background: "var(--blue, #2563eb)",
-            color: "white",
-            border: "none",
-            borderRadius: "50%",
-            width: 26,
-            height: 26,
-            fontSize: 16,
-            lineHeight: "26px",
-            fontWeight: 700,
-            cursor: "pointer",
-            padding: 0
-          }}
-        >
-          +
-        </button>
-      </div>
+      <div className="section-head">â° à¦†à¦œà¦•à§‡à¦° à¦°à¦¿à¦®à¦¾à¦‡à¦¨à§à¦¡à¦¾à¦°</div>
       <div className="reminder-list">
-        {reminders.length === 0 && (
-          <div style={{ padding: 14, textAlign: "center", color: "var(--txt2)", fontSize: 11 }}>
-            কোনো রিমাইন্ডার নেই। উপরের “+” বোতাম চাপুন।
-          </div>
-        )}
         {reminders.map((rem) => (
           <div key={rem.id} className="reminder-row" onClick={() => toggleReminder(rem.id)}>
             <div className={`rem-icon ${rem.color}`}>{rem.icon}</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
+            <div>
               <div className="rem-label">{rem.label}</div>
               <div className="rem-time">{rem.time}</div>
             </div>
-            <button
-              type="button"
-              aria-label="রিমাইন্ডার সম্পাদনা"
-              title="সম্পাদনা"
-              onClick={(e) => { e.stopPropagation(); openReminderEdit(rem); }}
-              style={{
-                background: "transparent",
-                border: "none",
-                color: "var(--blue, #2563eb)",
-                fontSize: 14,
-                cursor: "pointer",
-                padding: "2px 6px"
-              }}
-            >
-              ✏️
-            </button>
-            <button
-              type="button"
-              aria-label="রিমাইন্ডার মুছুন"
-              title="মুছুন"
-              onClick={(e) => { e.stopPropagation(); handleDeleteReminder(rem.id); }}
-              style={{
-                background: "transparent",
-                border: "none",
-                color: "var(--red, #d33)",
-                fontSize: 14,
-                cursor: "pointer",
-                padding: "2px 6px"
-              }}
-            >
-              🗑
-            </button>
             <div className={`rem-check ${rem.done ? "done" : ""}`}>
-              {rem.done ? "✓" : ""}
+              {rem.done ? "âœ“" : ""}
             </div>
           </div>
         ))}
       </div>
 
       {/* Quick service tools */}
-      <div className="section-head">⚡ দ্রুত সেবা</div>
+      <div className="section-head">âš¡ à¦¦à§à¦°à§à¦¤ à¦¸à§‡à¦¬à¦¾</div>
       <div className="quick-tiles">
         <button className="qtile g" onClick={() => setActiveModal("ocr")}>
-          <span className="qtile-icon">📋</span>
-          প্রেসক্রিপশন স্ক্যান
+          <span className="qtile-icon">ðŸ“‹</span>
+          à¦ªà§à¦°à§‡à¦¸à¦•à§à¦°à¦¿à¦ªà¦¶à¦¨ à¦¸à§à¦•à§à¦¯à¦¾à¦¨
         </button>
         <button className="qtile p" onClick={() => setActiveModal("mental")}>
-          <span className="qtile-icon">🧠</span>
-          মানসিক সুস্থতা
+          <span className="qtile-icon">ðŸ§ </span>
+          à¦®à¦¾à¦¨à¦¸à¦¿à¦• à¦¸à§à¦¸à§à¦¥à¦¤à¦¾
         </button>
         <button className="qtile a" onClick={() => setActiveModal("nutrition")}>
-          <span className="qtile-icon">🥗</span>
-          পুষ্টি পরামর্শ
+          <span className="qtile-icon">ðŸ¥—</span>
+          à¦ªà§à¦·à§à¦Ÿà¦¿ à¦ªà¦°à¦¾à¦®à¦°à§à¦¶
         </button>
       </div>
-
-      {/* Profile edit modal */}
-      {editingProfile && (
-        <div className="modal-overlay" onClick={closeProfileEdit}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-title">✏️ প্রোফাইল সম্পাদনা</div>
-            <form onSubmit={saveProfileEdit} style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: 12 }}>
-              <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <span>নাম</span>
-                <input
-                  className="finput"
-                  type="text"
-                  value={profileDraft.name}
-                  onChange={(e) => setProfileField("name", e.target.value)}
-                  placeholder="আপনার নাম"
-                  maxLength={60}
-                />
-              </label>
-              <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <span>বয়স</span>
-                <input
-                  className="finput"
-                  type="text"
-                  inputMode="numeric"
-                  value={profileDraft.age}
-                  onChange={(e) => setProfileField("age", e.target.value)}
-                  placeholder="যেমন: ২৮"
-                  maxLength={5}
-                />
-              </label>
-              <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <span>রক্তের গ্রুপ</span>
-                <select
-                  className="finput finput-select"
-                  value={profileDraft.bloodGroup || ""}
-                  onChange={(e) => setProfileField("bloodGroup", e.target.value)}
-                  aria-label="রক্তের গ্রুপ নির্বাচন করুন"
-                >
-                  <option value="">— নির্বাচন করুন —</option>
-                  <option value="A+">A+</option>
-                  <option value="A-">A-</option>
-                  <option value="B+">B+</option>
-                  <option value="B-">B-</option>
-                  <option value="AB+">AB+</option>
-                  <option value="AB-">AB-</option>
-                  <option value="O+">O+</option>
-                  <option value="O-">O-</option>
-                  <option value="অজানা">অজানা</option>
-                </select>
-              </label>
-              <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <span>ঠিকানা / এলাকা</span>
-                <input
-                  className="finput"
-                  type="text"
-                  value={profileDraft.location}
-                  onChange={(e) => setProfileField("location", e.target.value)}
-                  placeholder="যেমন: ঢাকা"
-                  maxLength={60}
-                />
-              </label>
-              <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <span>ফোন নম্বর</span>
-                <input
-                  className="finput"
-                  type="tel"
-                  value={profileDraft.phone}
-                  onChange={(e) => setProfileField("phone", e.target.value)}
-                  placeholder="01XXXXXXXXX"
-                  maxLength={20}
-                />
-              </label>
-              {profileError && (
-                <div style={{ color: "var(--red, #d33)", fontSize: 11 }}>{profileError}</div>
-              )}
-              <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-                <button
-                  type="button"
-                  className="auth-btn-secondary"
-                  onClick={closeProfileEdit}
-                  disabled={profileSaving}
-                  style={{ flex: 1 }}
-                >
-                  বাতিল
-                </button>
-                <button
-                  type="submit"
-                  className="auth-btn-primary"
-                  disabled={profileSaving}
-                  style={{ flex: 1 }}
-                >
-                  {profileSaving ? "সংরক্ষণ হচ্ছে…" : "সংরক্ষণ"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Reminder add/edit modal */}
-      {reminderEdit && (
-        <div className="modal-overlay" onClick={closeReminderEdit}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-title">
-              {reminderEdit.__new ? "➕ নতুন রিমাইন্ডার" : "✏️ রিমাইন্ডার সম্পাদনা"}
-            </div>
-            <form onSubmit={saveReminderEdit} style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: 12 }}>
-              <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <span>নাম</span>
-                <input
-                  className="finput"
-                  type="text"
-                  value={reminderDraft.label}
-                  onChange={(e) => setReminderField("label", e.target.value)}
-                  placeholder="যেমন: প্যারাসিটামল ৫০০মি.গ্রা."
-                  maxLength={80}
-                  required
-                />
-              </label>
-              <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <span>সময়</span>
-                <input
-                  className="finput"
-                  type="text"
-                  value={reminderDraft.time}
-                  onChange={(e) => setReminderField("time", e.target.value)}
-                  placeholder="যেমন: সকাল ৮:০০"
-                  maxLength={40}
-                />
-              </label>
-              <div>
-                <span style={{ display: "block", marginBottom: 4 }}>আইকন</span>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {REMINDER_ICONS.map((ic) => (
-                    <button
-                      type="button"
-                      key={ic}
-                      onClick={() => setReminderField("icon", ic)}
-                      style={{
-                        fontSize: 20,
-                        padding: "4px 8px",
-                        border: reminderDraft.icon === ic ? "2px solid var(--blue, #2563eb)" : "1px solid #ddd",
-                        borderRadius: 6,
-                        background: reminderDraft.icon === ic ? "rgba(37,99,235,0.1)" : "#fff",
-                        cursor: "pointer"
-                      }}
-                      aria-label={`আইকন ${ic}`}
-                    >
-                      {ic}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <span style={{ display: "block", marginBottom: 4 }}>রঙ</span>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {REMINDER_COLORS.map((c) => (
-                    <button
-                      type="button"
-                      key={c}
-                      onClick={() => setReminderField("color", c)}
-                      style={{
-                        padding: "6px 12px",
-                        fontSize: 11,
-                        fontWeight: 600,
-                        border: reminderDraft.color === c ? "2px solid #111" : "1px solid #ddd",
-                        borderRadius: 6,
-                        background: reminderDraft.color === c ? "rgba(0,0,0,0.05)" : "#fff",
-                        cursor: "pointer",
-                        textTransform: "capitalize"
-                      }}
-                    >
-                      {c}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {reminderError && (
-                <div style={{ color: "var(--red, #d33)", fontSize: 11 }}>{reminderError}</div>
-              )}
-              <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-                <button
-                  type="button"
-                  className="auth-btn-secondary"
-                  onClick={closeReminderEdit}
-                  disabled={reminderSaving}
-                  style={{ flex: 1 }}
-                >
-                  বাতিল
-                </button>
-                <button
-                  type="submit"
-                  className="auth-btn-primary"
-                  disabled={reminderSaving}
-                  style={{ flex: 1 }}
-                >
-                  {reminderSaving ? "সংরক্ষণ হচ্ছে…" : "সংরক্ষণ"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* Modals for Quick Services */}
       {activeModal && (
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-
+            
             {/* OCR Prescription Scanner Modal */}
             {activeModal === "ocr" && (
               <>
-                <div className="modal-title">📋 প্রেসক্রিপশন স্ক্যানার (AI OCR)</div>
+                <div className="modal-title">ðŸ“‹ à¦ªà§à¦°à§‡à¦¸à¦•à§à¦°à¦¿à¦ªà¦¶à¦¨ à¦¸à§à¦•à§à¦¯à¦¾à¦¨à¦¾à¦° (AI OCR)</div>
                 <div style={{ fontSize: "11px", display: "flex", flexDirection: "column", gap: "10px" }}>
                   <p style={{ color: "var(--txt2)" }}>
-                    আপনার প্রেসক্রিপশনের ছবি আপলোড করুন। AI স্বয়ংক্রিয়ভাবে ওষুধ শনাক্ত করে রিমাইন্ডার সেট করবে।
+                    à¦†à¦ªà¦¨à¦¾à¦° à¦ªà§à¦°à§‡à¦¸à¦•à§à¦°à¦¿à¦ªà¦¶à¦¨à§‡à¦° à¦›à¦¬à¦¿ à¦†à¦ªà¦²à§‹à¦¡ à¦•à¦°à§à¦¨à¥¤ AI à¦¸à§à¦¬à¦¯à¦¼à¦‚à¦•à§à¦°à¦¿à¦¯à¦¼à¦­à¦¾à¦¬à§‡ à¦“à¦·à§à¦§ à¦¶à¦¨à¦¾à¦•à§à¦¤ à¦•à¦°à§‡ à¦°à¦¿à¦®à¦¾à¦‡à¦¨à§à¦¡à¦¾à¦° à¦¸à§‡à¦Ÿ à¦•à¦°à¦¬à§‡à¥¤
                   </p>
                   
                   <input
@@ -1362,7 +922,7 @@ export default function Profile() {
 
                   {ocrFileName && !ocrResult && (
                     <div style={{ fontSize: "10px", color: "var(--txt2)" }}>
-                      ফাইল: {ocrFileName}
+                      à¦«à¦¾à¦‡à¦²: {ocrFileName}
                     </div>
                   )}
 
@@ -1388,33 +948,33 @@ export default function Profile() {
                       onClick={handleOcrRetry}
                       className="ocr-retry-btn"
                     >
-                      🔄 আবার স্ক্যান করুন
+                      ðŸ”„ à¦†à¦¬à¦¾à¦° à¦¸à§à¦•à§à¦¯à¦¾à¦¨ à¦•à¦°à§à¦¨
                     </button>
                   )}
 
                   {ocrResult && ocrResult.medicines && ocrResult.medicines.length > 0 && (
                     <div className="ocr-result-card">
                       <div className="ocr-result-head">
-                        <span>🔍 পাওয়া ওষুধ</span>
+                        <span>ðŸ” à¦ªà¦¾à¦“à¦¯à¦¼à¦¾ à¦“à¦·à§à¦§</span>
                         <span className="ocr-source-badge" data-source={ocrResult.source}>
-                          {ocrResult.source === "local" ? "লোকাল" : ocrResult.source}
+                          {ocrResult.source === "local" ? "à¦²à§‹à¦•à¦¾à¦²" : ocrResult.source}
                         </span>
                       </div>
                       <ul className="ocr-med-list">
                         {ocrResult.medicines.map((med, idx) => (
                           <li key={idx} className="ocr-med-item">
                             <div className="ocr-med-main">
-                              <div className="ocr-med-name">💊 {med.name}</div>
-                              {med.dosage && <div className="ocr-med-meta">মাত্রা: {med.dosage}</div>}
-                              {med.frequency && <div className="ocr-med-meta">ফ্রিকোয়েন্সি: {med.frequency}</div>}
-                              {med.time && <div className="ocr-med-meta">সময়: {med.time}</div>}
+                              <div className="ocr-med-name">ðŸ’Š {med.name}</div>
+                              {med.dosage && <div className="ocr-med-meta">à¦®à¦¾à¦¤à§à¦°à¦¾: {med.dosage}</div>}
+                              {med.frequency && <div className="ocr-med-meta">à¦«à§à¦°à¦¿à¦•à§‹à¦¯à¦¼à§‡à¦¨à§à¦¸à¦¿: {med.frequency}</div>}
+                              {med.time && <div className="ocr-med-meta">à¦¸à¦®à¦¯à¦¼: {med.time}</div>}
                             </div>
                             <button
                               type="button"
                               className="ocr-add-one"
                               onClick={() => addOcrMedicine(med)}
                             >
-                              + যোগ
+                              + à¦¯à§‹à¦—
                             </button>
                           </li>
                         ))}
@@ -1424,7 +984,7 @@ export default function Profile() {
                         className="ocr-add-all"
                         onClick={addOcrReminder}
                       >
-                        ✓ সব রিমাইন্ডারে যোগ করুন
+                        âœ“ à¦¸à¦¬ à¦°à¦¿à¦®à¦¾à¦‡à¦¨à§à¦¡à¦¾à¦°à§‡ à¦¯à§‹à¦— à¦•à¦°à§à¦¨
                       </button>
                     </div>
                   )}
@@ -1435,17 +995,17 @@ export default function Profile() {
             {/* Nutrition Advice Modal (dynamic) */}
             {activeModal === "nutrition" && (
               <>
-                <div className="modal-title">🥗 পুষ্টি ও খাদ্য পরামর্শ</div>
+                <div className="modal-title">ðŸ¥— à¦ªà§à¦·à§à¦Ÿà¦¿ à¦“ à¦–à¦¾à¦¦à§à¦¯ à¦ªà¦°à¦¾à¦®à¦°à§à¦¶</div>
 
                 {nutStep === "form" && (
                   <div className="nut-body">
                     <p className="nut-lead">
-                      আপনার ওজন, বয়স, লিঙ্গ ও ব্যায়ামের পরিমাণ অনুযায়ী ক্যালোরি ও খাবারের পরিকল্পনা তৈরি হবে।
+                      à¦†à¦ªà¦¨à¦¾à¦° à¦“à¦œà¦¨, à¦¬à¦¯à¦¼à¦¸, à¦²à¦¿à¦™à§à¦— à¦“ à¦¬à§à¦¯à¦¾à¦¯à¦¼à¦¾à¦®à§‡à¦° à¦ªà¦°à¦¿à¦®à¦¾à¦£ à¦…à¦¨à§à¦¯à¦¾à¦¯à¦¼à§€ à¦•à§à¦¯à¦¾à¦²à§‹à¦°à¦¿ à¦“ à¦–à¦¾à¦¬à¦¾à¦°à§‡à¦° à¦ªà¦°à¦¿à¦•à¦²à§à¦ªà¦¨à¦¾ à¦¤à§ˆà¦°à¦¿ à¦¹à¦¬à§‡à¥¤
                     </p>
 
                     <div className="nut-form-grid">
                       <label className="nut-field">
-                        <span>ওজন (কেজি)</span>
+                        <span>à¦“à¦œà¦¨ (à¦•à§‡à¦œà¦¿)</span>
                         <input
                           className="nut-input"
                           type="number"
@@ -1453,13 +1013,13 @@ export default function Profile() {
                           min="30" max="200"
                           value={nutInput.weight}
                           onChange={(e) => handleNutInput("weight", e.target.value)}
-                          placeholder="যেমন: ৬৫"
+                          placeholder="à¦¯à§‡à¦®à¦¨: à§¬à§«"
                         />
                         {nutErrors.weight && <em className="nut-err">{nutErrors.weight}</em>}
                       </label>
 
                       <label className="nut-field">
-                        <span>উচ্চতা (সেমি)</span>
+                        <span>à¦‰à¦šà§à¦šà¦¤à¦¾ (à¦¸à§‡à¦®à¦¿)</span>
                         <input
                           className="nut-input"
                           type="number"
@@ -1467,13 +1027,13 @@ export default function Profile() {
                           min="100" max="220"
                           value={nutInput.height}
                           onChange={(e) => handleNutInput("height", e.target.value)}
-                          placeholder="যেমন: ১৬৮"
+                          placeholder="à¦¯à§‡à¦®à¦¨: à§§à§¬à§®"
                         />
                         {nutErrors.height && <em className="nut-err">{nutErrors.height}</em>}
                       </label>
 
                       <label className="nut-field">
-                        <span>বয়স (বছর)</span>
+                        <span>à¦¬à¦¯à¦¼à¦¸ (à¦¬à¦›à¦°)</span>
                         <input
                           className="nut-input"
                           type="number"
@@ -1481,13 +1041,13 @@ export default function Profile() {
                           min="5" max="100"
                           value={nutInput.age}
                           onChange={(e) => handleNutInput("age", e.target.value)}
-                          placeholder="যেমন: ২৮"
+                          placeholder="à¦¯à§‡à¦®à¦¨: à§¨à§®"
                         />
                         {nutErrors.age && <em className="nut-err">{nutErrors.age}</em>}
                       </label>
 
                       <label className="nut-field">
-                        <span>সাপ্তাহিক ব্যায়াম (ঘণ্টা)</span>
+                        <span>à¦¸à¦¾à¦ªà§à¦¤à¦¾à¦¹à¦¿à¦• à¦¬à§à¦¯à¦¾à¦¯à¦¼à¦¾à¦® (à¦˜à¦£à§à¦Ÿà¦¾)</span>
                         <input
                           className="nut-input"
                           type="number"
@@ -1495,14 +1055,14 @@ export default function Profile() {
                           min="0" max="25"
                           value={nutInput.exerciseHours}
                           onChange={(e) => handleNutInput("exerciseHours", e.target.value)}
-                          placeholder="যেমন: ৩"
+                          placeholder="à¦¯à§‡à¦®à¦¨: à§©"
                         />
                         {nutErrors.exerciseHours && <em className="nut-err">{nutErrors.exerciseHours}</em>}
                       </label>
                     </div>
 
                     <div className="nut-radio-group">
-                      <span className="nut-radio-label">লিঙ্গ</span>
+                      <span className="nut-radio-label">à¦²à¦¿à¦™à§à¦—</span>
                       <div className="nut-radio-options">
                         {GENDER_OPTIONS.map((g) => (
                           <button
@@ -1518,7 +1078,7 @@ export default function Profile() {
                     </div>
 
                     <div className="nut-radio-group">
-                      <span className="nut-radio-label">আপনার লক্ষ্য</span>
+                      <span className="nut-radio-label">à¦†à¦ªà¦¨à¦¾à¦° à¦²à¦•à§à¦·à§à¦¯</span>
                       <div className="nut-radio-options">
                         {GOAL_OPTIONS.map((g) => (
                           <button
@@ -1539,7 +1099,7 @@ export default function Profile() {
                         onClick={calculateNutrition}
                         disabled={nutCalculating}
                       >
-                        {nutCalculating ? "হিসাব হচ্ছে…" : "🍽️ পরিকল্পনা দেখুন"}
+                        {nutCalculating ? "à¦¹à¦¿à¦¸à¦¾à¦¬ à¦¹à¦šà§à¦›à§‡â€¦" : "ðŸ½ï¸ à¦ªà¦°à¦¿à¦•à¦²à§à¦ªà¦¨à¦¾ à¦¦à§‡à¦–à§à¦¨"}
                       </button>
                     </div>
                   </div>
@@ -1555,53 +1115,53 @@ export default function Profile() {
                       <div className="nut-stat">
                         <span className="nut-stat-label">BMR</span>
                         <span className="nut-stat-value">{nutResult.bmr}</span>
-                        <span className="nut-stat-unit">কিলোক্যালরি</span>
+                        <span className="nut-stat-unit">à¦•à¦¿à¦²à§‹à¦•à§à¦¯à¦¾à¦²à¦°à¦¿</span>
                       </div>
                       <div className="nut-stat">
                         <span className="nut-stat-label">TDEE</span>
                         <span className="nut-stat-value">{nutResult.tdee}</span>
-                        <span className="nut-stat-unit">কিলোক্যালরি</span>
+                        <span className="nut-stat-unit">à¦•à¦¿à¦²à§‹à¦•à§à¦¯à¦¾à¦²à¦°à¦¿</span>
                       </div>
                       <div className="nut-stat nut-stat-target">
-                        <span className="nut-stat-label">লক্ষ্য</span>
+                        <span className="nut-stat-label">à¦²à¦•à§à¦·à§à¦¯</span>
                         <span className="nut-stat-value">{nutResult.targetKcal}</span>
-                        <span className="nut-stat-unit">কিলোক্যালরি/দিন</span>
+                        <span className="nut-stat-unit">à¦•à¦¿à¦²à§‹à¦•à§à¦¯à¦¾à¦²à¦°à¦¿/à¦¦à¦¿à¦¨</span>
                       </div>
                       <div className="nut-stat">
-                        <span className="nut-stat-label">পানি</span>
+                        <span className="nut-stat-label">à¦ªà¦¾à¦¨à¦¿</span>
                         <span className="nut-stat-value">{nutResult.waterIntake}</span>
-                        <span className="nut-stat-unit">লিটার/দিন</span>
+                        <span className="nut-stat-unit">à¦²à¦¿à¦Ÿà¦¾à¦°/à¦¦à¦¿à¦¨</span>
                       </div>
                     </div>
 
                     <div className="nut-macros">
-                      <span>প্রোটিন: <b>{nutResult.macros.protein} গ্রাম</b></span>
-                      <span>শর্করা: <b>{nutResult.macros.carbs} গ্রাম</b></span>
-                      <span>চর্বি: <b>{nutResult.macros.fat} গ্রাম</b></span>
+                      <span>à¦ªà§à¦°à§‹à¦Ÿà¦¿à¦¨: <b>{nutResult.macros.protein} à¦—à§à¦°à¦¾à¦®</b></span>
+                      <span>à¦¶à¦°à§à¦•à¦°à¦¾: <b>{nutResult.macros.carbs} à¦—à§à¦°à¦¾à¦®</b></span>
+                      <span>à¦šà¦°à§à¦¬à¦¿: <b>{nutResult.macros.fat} à¦—à§à¦°à¦¾à¦®</b></span>
                     </div>
 
                     <div className="nut-context">
                       <small>
-                        কার্যকলাপ: {nutResult.activity.label} • লক্ষ্য: {nutResult.goal.label} ({nutResult.goal.adjust > 0 ? "+" : ""}{nutResult.goal.adjust} কিলোক্যালরি)
+                        à¦•à¦¾à¦°à§à¦¯à¦•à¦²à¦¾à¦ª: {nutResult.activity.label} â€¢ à¦²à¦•à§à¦·à§à¦¯: {nutResult.goal.label} ({nutResult.goal.adjust > 0 ? "+" : ""}{nutResult.goal.adjust} à¦•à¦¿à¦²à§‹à¦•à§à¦¯à¦¾à¦²à¦°à¦¿)
                       </small>
                     </div>
 
                     <div className="nut-tips">
                       {nutResult.tips.map((t, i) => (
-                        <div key={i} className="nut-tip">💡 {t}</div>
+                        <div key={i} className="nut-tip">ðŸ’¡ {t}</div>
                       ))}
                     </div>
 
-                    <h4 className="nut-section-title">🍽️ আজকের খাবার পরিকল্পনা</h4>
+                    <h4 className="nut-section-title">ðŸ½ï¸ à¦†à¦œà¦•à§‡à¦° à¦–à¦¾à¦¬à¦¾à¦° à¦ªà¦°à¦¿à¦•à¦²à§à¦ªà¦¨à¦¾</h4>
 
                     {nutResult.mealOrder.map((mealKey) => {
                       const data = nutResult.meals[mealKey];
                       if (!data || data.items.length === 0) return null;
                       const meta = {
-                        breakfast: { label: "সকালের নাস্তা", icon: "🌅", pct: 25 },
-                        lunch:     { label: "দুপুরের খাবার",  icon: "🍛", pct: 35 },
-                        snack:     { label: "বিকেলের নাস্তা", icon: "🥪", pct: 10 },
-                        dinner:    { label: "রাতের খাবার",    icon: "🌙", pct: 30 }
+                        breakfast: { label: "à¦¸à¦•à¦¾à¦²à§‡à¦° à¦¨à¦¾à¦¸à§à¦¤à¦¾", icon: "ðŸŒ…", pct: 25 },
+                        lunch:     { label: "à¦¦à§à¦ªà§à¦°à§‡à¦° à¦–à¦¾à¦¬à¦¾à¦°",  icon: "ðŸ›", pct: 35 },
+                        snack:     { label: "à¦¬à¦¿à¦•à§‡à¦²à§‡à¦° à¦¨à¦¾à¦¸à§à¦¤à¦¾", icon: "ðŸ¥ª", pct: 10 },
+                        dinner:    { label: "à¦°à¦¾à¦¤à§‡à¦° à¦–à¦¾à¦¬à¦¾à¦°",    icon: "ðŸŒ™", pct: 30 }
                       }[mealKey];
                       return (
                         <div key={mealKey} className="nut-meal-group">
@@ -1609,7 +1169,7 @@ export default function Profile() {
                             <span className="nut-meal-icon">{meta.icon}</span>
                             <span className="nut-meal-label">{meta.label}</span>
                             <span className="nut-meal-budget">
-                              {data.totals.kcal} / {data.budget} কিলোক্যালরি ({meta.pct}%)
+                              {data.totals.kcal} / {data.budget} à¦•à¦¿à¦²à§‹à¦•à§à¦¯à¦¾à¦²à¦°à¦¿ ({meta.pct}%)
                             </span>
                           </div>
                           <ul className="nut-food-list">
@@ -1622,7 +1182,7 @@ export default function Profile() {
                                   <span className="nut-food-portion">{it.portion}</span>
                                 </div>
                                 <div className="nut-food-macros">
-                                  <span className="nut-food-kcal">{it.kcal} কিলো</span>
+                                  <span className="nut-food-kcal">{it.kcal} à¦•à¦¿à¦²à§‹</span>
                                   <span className="nut-food-macro">P {it.protein}</span>
                                   <span className="nut-food-macro">C {it.carbs}</span>
                                   <span className="nut-food-macro">F {it.fat}</span>
@@ -1636,7 +1196,7 @@ export default function Profile() {
 
                     <div className="nut-actions">
                       <button className="nut-cta nut-cta-secondary" onClick={restartNutrition}>
-                        ↻ নতুন হিসাব করুন
+                        â†» à¦¨à¦¤à§à¦¨ à¦¹à¦¿à¦¸à¦¾à¦¬ à¦•à¦°à§à¦¨
                       </button>
                     </div>
                   </div>
@@ -1647,28 +1207,28 @@ export default function Profile() {
             {/* Mental Health Self-Check Modal */}
             {activeModal === "mental" && (
               <>
-                <div className="modal-title">🧠 মানসিক সুস্থতা স্ব-পরীক্ষা</div>
+                <div className="modal-title">ðŸ§  à¦®à¦¾à¦¨à¦¸à¦¿à¦• à¦¸à§à¦¸à§à¦¥à¦¤à¦¾ à¦¸à§à¦¬-à¦ªà¦°à§€à¦•à§à¦·à¦¾</div>
                 <div className="mh-body">
                   {mhStep === "intro" && (
                     <div className="mh-intro">
                       <p className="mh-lead">
-                        একটি ছোট ব্রেইন-গেম এবং ১২টি প্রশ্নের মাধ্যমে আপনার
-                        বর্তমান মানসিক অবস্থা বুঝতে সাহায্য করবো। আপনার
-                        উত্তরগুলো গোপন থাকবে এবং ডাটাবেস থেকে সঠিক
-                        পরামর্শ দেওয়া হবে।
+                        à¦à¦•à¦Ÿà¦¿ à¦›à§‹à¦Ÿ à¦¬à§à¦°à§‡à¦‡à¦¨-à¦—à§‡à¦® à¦à¦¬à¦‚ à§§à§¨à¦Ÿà¦¿ à¦ªà§à¦°à¦¶à§à¦¨à§‡à¦° à¦®à¦¾à¦§à§à¦¯à¦®à§‡ à¦†à¦ªà¦¨à¦¾à¦°
+                        à¦¬à¦°à§à¦¤à¦®à¦¾à¦¨ à¦®à¦¾à¦¨à¦¸à¦¿à¦• à¦…à¦¬à¦¸à§à¦¥à¦¾ à¦¬à§à¦à¦¤à§‡ à¦¸à¦¾à¦¹à¦¾à¦¯à§à¦¯ à¦•à¦°à¦¬à§‹à¥¤ à¦†à¦ªà¦¨à¦¾à¦°
+                        à¦‰à¦¤à§à¦¤à¦°à¦—à§à¦²à§‹ à¦—à§‹à¦ªà¦¨ à¦¥à¦¾à¦•à¦¬à§‡ à¦à¦¬à¦‚ à¦¡à¦¾à¦Ÿà¦¾à¦¬à§‡à¦¸ à¦¥à§‡à¦•à§‡ à¦¸à¦ à¦¿à¦•
+                        à¦ªà¦°à¦¾à¦®à¦°à§à¦¶ à¦¦à§‡à¦“à¦¯à¦¼à¦¾ à¦¹à¦¬à§‡à¥¤
                       </p>
                       <ul className="mh-list">
-                        <li>🎯 <b>রিঅ্যাকশন গেম:</b> সবুজ বৃত্ত দেখলে দ্রুত ট্যাপ করুন</li>
-                        <li>📝 <b>ছোট কুইজ:</b> গত ৭ দিনের অনুভূতি</li>
-                        <li>💡 <b>ব্যক্তিগত পরামর্শ:</b> ১০০+ পরামর্শের ডাটাবেস থেকে</li>
+                        <li>ðŸŽ¯ <b>à¦°à¦¿à¦…à§à¦¯à¦¾à¦•à¦¶à¦¨ à¦—à§‡à¦®:</b> à¦¸à¦¬à§à¦œ à¦¬à§ƒà¦¤à§à¦¤ à¦¦à§‡à¦–à¦²à§‡ à¦¦à§à¦°à§à¦¤ à¦Ÿà§à¦¯à¦¾à¦ª à¦•à¦°à§à¦¨</li>
+                        <li>ðŸ“ <b>à¦›à§‹à¦Ÿ à¦•à§à¦‡à¦œ:</b> à¦—à¦¤ à§­ à¦¦à¦¿à¦¨à§‡à¦° à¦…à¦¨à§à¦­à§‚à¦¤à¦¿</li>
+                        <li>ðŸ’¡ <b>à¦¬à§à¦¯à¦•à§à¦¤à¦¿à¦—à¦¤ à¦ªà¦°à¦¾à¦®à¦°à§à¦¶:</b> à§§à§¦à§¦+ à¦ªà¦°à¦¾à¦®à¦°à§à¦¶à§‡à¦° à¦¡à¦¾à¦Ÿà¦¾à¦¬à§‡à¦¸ à¦¥à§‡à¦•à§‡</li>
                       </ul>
                       <p className="mh-disclaimer">
-                        ⚠ এটি চিকিৎসা পরামর্শ নয়। গুরুতর সমস্যা হলে
-                        হেল্পলাইনে যোগাযোগ করুন।
+                        âš  à¦à¦Ÿà¦¿ à¦šà¦¿à¦•à¦¿à§Žà¦¸à¦¾ à¦ªà¦°à¦¾à¦®à¦°à§à¦¶ à¦¨à¦¯à¦¼à¥¤ à¦—à§à¦°à§à¦¤à¦° à¦¸à¦®à¦¸à§à¦¯à¦¾ à¦¹à¦²à§‡
+                        à¦¹à§‡à¦²à§à¦ªà¦²à¦¾à¦‡à¦¨à§‡ à¦¯à§‹à¦—à¦¾à¦¯à§‹à¦— à¦•à¦°à§à¦¨à¥¤
                       </p>
                       <div className="mh-actions">
                         <button className="mh-primary" onClick={startMentalGame}>
-                          শুরু করুন →
+                          à¦¶à§à¦°à§ à¦•à¦°à§à¦¨ â†’
                         </button>
                       </div>
                     </div>
@@ -1677,33 +1237,33 @@ export default function Profile() {
                   {mhStep === "game" && (
                     <div className="mh-game">
                       <div className="mh-game-progress">
-                        রাউন্ড {Math.min(mhGame.roundIndex + 1, GAME_CONFIG.totalRounds)} / {GAME_CONFIG.totalRounds}
+                        à¦°à¦¾à¦‰à¦¨à§à¦¡ {Math.min(mhGame.roundIndex + 1, GAME_CONFIG.totalRounds)} / {GAME_CONFIG.totalRounds}
                       </div>
                       <div className="mh-game-stage">
                         {mhGame.phase === "waiting" && (
                           <div className="mh-game-hint">
                             <div className="mh-game-pulse" />
-                            <p>সবুজ বৃত্তের জন্য অপেক্ষা করুন...</p>
+                            <p>à¦¸à¦¬à§à¦œ à¦¬à§ƒà¦¤à§à¦¤à§‡à¦° à¦œà¦¨à§à¦¯ à¦…à¦ªà§‡à¦•à§à¦·à¦¾ à¦•à¦°à§à¦¨...</p>
                           </div>
                         )}
                         {mhGame.phase === "live" && (
                           <button
                             className="mh-game-target"
                             onClick={tapMentalTarget}
-                            aria-label="টার্গেট"
+                            aria-label="à¦Ÿà¦¾à¦°à§à¦—à§‡à¦Ÿ"
                             style={{ background: GAME_CONFIG.targetColor }}
                           />
                         )}
                       </div>
                       <p className="mh-game-foot">
-                        যত দ্রুত পারেন ট্যাপ করুন, কিন্তু সবুজ দেখা
-                        মাত্রই — আগে ট্যাপ করলে পয়েন্ট কাটা যাবে।
+                        à¦¯à¦¤ à¦¦à§à¦°à§à¦¤ à¦ªà¦¾à¦°à§‡à¦¨ à¦Ÿà§à¦¯à¦¾à¦ª à¦•à¦°à§à¦¨, à¦•à¦¿à¦¨à§à¦¤à§ à¦¸à¦¬à§à¦œ à¦¦à§‡à¦–à¦¾
+                        à¦®à¦¾à¦¤à§à¦°à¦‡ â€” à¦†à¦—à§‡ à¦Ÿà§à¦¯à¦¾à¦ª à¦•à¦°à¦²à§‡ à¦ªà¦¯à¦¼à§‡à¦¨à§à¦Ÿ à¦•à¦¾à¦Ÿà¦¾ à¦¯à¦¾à¦¬à§‡à¥¤
                       </p>
                     </div>
                   )}
 
                   {mhStep === "quiz" && mhLoading && (
-                    <div className="mh-loading">আপনার উত্তর বিশ্লেষণ হচ্ছে…</div>
+                    <div className="mh-loading">à¦†à¦ªà¦¨à¦¾à¦° à¦‰à¦¤à§à¦¤à¦° à¦¬à¦¿à¦¶à§à¦²à§‡à¦·à¦£ à¦¹à¦šà§à¦›à§‡â€¦</div>
                   )}
 
                   {mhStep === "quiz" && !mhLoading && (() => {
@@ -1712,7 +1272,7 @@ export default function Profile() {
                     return (
                       <div className="mh-quiz">
                         <div className="mh-quiz-progress">
-                          প্রশ্ন {mhQuizIndex + 1} / {QUIZ_ITEMS.length}
+                          à¦ªà§à¦°à¦¶à§à¦¨ {mhQuizIndex + 1} / {QUIZ_ITEMS.length}
                         </div>
                         <div className="mh-quiz-progress-bar">
                           <div
@@ -1740,26 +1300,26 @@ export default function Profile() {
                     <div className="mh-result">
                       <div className="mh-result-headline">
                         <div className="mh-result-cat">
-                          🪞 প্রধান উদ্বেগ:&nbsp;
+                          ðŸªž à¦ªà§à¦°à¦§à¦¾à¦¨ à¦‰à¦¦à§à¦¬à§‡à¦—:&nbsp;
                           <b>{mhResult.quiz.categoryLabel}</b>
                           <span className={"mh-intensity mh-intensity-" + mhResult.quiz.intensity}>
                             &nbsp;{intensityBn(mhResult.quiz.intensity)}
                           </span>
                         </div>
                         <div className="mh-result-brain">
-                          🧠 ব্রেইন স্কোর: <b>{mhResult.game.brainScore}</b>/100 · {mhResult.game.focusRating}
+                          ðŸ§  à¦¬à§à¦°à§‡à¦‡à¦¨ à¦¸à§à¦•à§‹à¦°: <b>{mhResult.game.brainScore}</b>/100 Â· {mhResult.game.focusRating}
                         </div>
                       </div>
 
                       <div className="mh-result-meters">
-                        <Meter label="সুস্থতা" value={mhResult.quiz.wellbeing} color="green" />
-                        <Meter label="উদ্বেগ" value={mhResult.quiz.risk.anxious} color="purple" />
-                        <Meter label="চাপ" value={mhResult.quiz.risk.stressed} color="red" />
-                        <Meter label="বিষণ্ণতা" value={mhResult.quiz.risk.sad} color="blue" />
+                        <Meter label="à¦¸à§à¦¸à§à¦¥à¦¤à¦¾" value={mhResult.quiz.wellbeing} color="green" />
+                        <Meter label="à¦‰à¦¦à§à¦¬à§‡à¦—" value={mhResult.quiz.risk.anxious} color="purple" />
+                        <Meter label="à¦šà¦¾à¦ª" value={mhResult.quiz.risk.stressed} color="red" />
+                        <Meter label="à¦¬à¦¿à¦·à¦£à§à¦£à¦¤à¦¾" value={mhResult.quiz.risk.sad} color="blue" />
                       </div>
 
                       <div className="mh-suggestions-title">
-                        💡 আপনার জন্য পরামর্শ ({mhResult.suggestions.length} টি)
+                        ðŸ’¡ à¦†à¦ªà¦¨à¦¾à¦° à¦œà¦¨à§à¦¯ à¦ªà¦°à¦¾à¦®à¦°à§à¦¶ ({mhResult.suggestions.length} à¦Ÿà¦¿)
                       </div>
                       <ul className="mh-suggestions">
                         {mhResult.suggestions.map((s) => (
@@ -1769,17 +1329,17 @@ export default function Profile() {
                               <span className="mh-suggestion-tag">{s.tag}</span>
                             </div>
                             <div className="mh-suggestion-body">{s.body}</div>
-                            <div className="mh-suggestion-time">⏱ {s.duration}</div>
+                            <div className="mh-suggestion-time">â± {s.duration}</div>
                           </li>
                         ))}
                       </ul>
 
                       <div className="mh-actions">
                         <button className="mh-secondary" onClick={restartMental}>
-                          ↻ আবার করুন
+                          â†» à¦†à¦¬à¦¾à¦° à¦•à¦°à§à¦¨
                         </button>
                         <button className="mh-primary" onClick={closeModal}>
-                          ✓ শেষ
+                          âœ“ à¦¶à§‡à¦·
                         </button>
                       </div>
                     </div>
@@ -1791,16 +1351,16 @@ export default function Profile() {
             {/* Heart Rate Measurement Modal (PPG camera-based) */}
             {activeModal === "heart" && (
               <>
-                <div className="modal-title">❤️ হার্টরেট মাপুন (PPG)</div>
+                <div className="modal-title">â¤ï¸ à¦¹à¦¾à¦°à§à¦Ÿà¦°à§‡à¦Ÿ à¦®à¦¾à¦ªà§à¦¨ (PPG)</div>
                 <div className="measure-instructions">
-                  📱 আঙুলটি রিয়ার ক্যামেরার লেন্সের উপর হালকাভাবে রাখুন এবং ফ্ল্যাশ জ্বলতে দিন।
-                  ৩০ সেকেন্ড স্থির থাকুন। এটি কোনো চিকিৎসা পরামর্শ নয়。
+                  ðŸ“± à¦†à¦™à§à¦²à¦Ÿà¦¿ à¦°à¦¿à¦¯à¦¼à¦¾à¦° à¦•à§à¦¯à¦¾à¦®à§‡à¦°à¦¾à¦° à¦²à§‡à¦¨à§à¦¸à§‡à¦° à¦‰à¦ªà¦° à¦¹à¦¾à¦²à¦•à¦¾à¦­à¦¾à¦¬à§‡ à¦°à¦¾à¦–à§à¦¨ à¦à¦¬à¦‚ à¦«à§à¦²à§à¦¯à¦¾à¦¶ à¦œà§à¦¬à¦²à¦¤à§‡ à¦¦à¦¿à¦¨à¥¤
+                  à§©à§¦ à¦¸à§‡à¦•à§‡à¦¨à§à¦¡ à¦¸à§à¦¥à¦¿à¦° à¦¥à¦¾à¦•à§à¦¨à¥¤ à¦à¦Ÿà¦¿ à¦•à§‹à¦¨à§‹ à¦šà¦¿à¦•à¦¿à§Žà¦¸à¦¾ à¦ªà¦°à¦¾à¦®à¦°à§à¦¶ à¦¨à¦¯à¦¼ã€‚
                 </div>
                 <video ref={hrVideoRef} className="measure-video" autoPlay playsInline muted />
 
                 {hrState.status === "idle" && (
                   <button className="measure-start-btn" onClick={startHeartRate}>
-                    ▶ পরিমাপ শুরু করুন (৩০ সেকেন্ড)
+                    â–¶ à¦ªà¦°à¦¿à¦®à¦¾à¦ª à¦¶à§à¦°à§ à¦•à¦°à§à¦¨ (à§©à§¦ à¦¸à§‡à¦•à§‡à¦¨à§à¦¡)
                   </button>
                 )}
 
@@ -1810,29 +1370,29 @@ export default function Profile() {
                       <div className="progress-fill" style={{ width: `${hrState.progress}%` }} />
                     </div>
                     <div style={{ fontSize: "11px", color: "var(--txt2)", marginTop: "6px" }}>
-                      সময়: {Math.round(hrState.elapsed / 1000)} সে / 30 সে
-                      {hrState.bpm ? ` · লাইভ BPM: ${hrState.bpm}` : ""}
+                      à¦¸à¦®à¦¯à¦¼: {Math.round(hrState.elapsed / 1000)} à¦¸à§‡ / 30 à¦¸à§‡
+                      {hrState.bpm ? ` Â· à¦²à¦¾à¦‡à¦­ BPM: ${hrState.bpm}` : ""}
                     </div>
                   </div>
                 )}
 
                 {hrState.status === "done" && (
                   <div className="measure-result">
-                    <div style={{ fontSize: "11px", color: "var(--txt2)" }}>আপনার আনুমানিক হার্টরেট</div>
+                    <div style={{ fontSize: "11px", color: "var(--txt2)" }}>à¦†à¦ªà¦¨à¦¾à¦° à¦†à¦¨à§à¦®à¦¾à¦¨à¦¿à¦• à¦¹à¦¾à¦°à§à¦Ÿà¦°à§‡à¦Ÿ</div>
                     <div className="result-bpm">{hrState.bpm} BPM</div>
                     <button
                       className="measure-start-btn"
                       onClick={startHeartRate}
                       style={{ background: "var(--blue)", marginTop: "6px" }}
                     >
-                      🔁 আবার পরিমাপ করুন
+                      ðŸ” à¦†à¦¬à¦¾à¦° à¦ªà¦°à¦¿à¦®à¦¾à¦ª à¦•à¦°à§à¦¨
                     </button>
                   </div>
                 )}
 
                 {hrState.status === "error" && (
                   <div className="measure-result" style={{ background: "#fee", color: "#c33" }}>
-                    ❌ ক্যামেরা অ্যাক্সেস প্রয়োজন। অনুগ্রহ করে ক্যামেরা পারমিশন দিন。
+                    âŒ à¦•à§à¦¯à¦¾à¦®à§‡à¦°à¦¾ à¦…à§à¦¯à¦¾à¦•à§à¦¸à§‡à¦¸ à¦ªà§à¦°à¦¯à¦¼à§‹à¦œà¦¨à¥¤ à¦…à¦¨à§à¦—à§à¦°à¦¹ à¦•à¦°à§‡ à¦•à§à¦¯à¦¾à¦®à§‡à¦°à¦¾ à¦ªà¦¾à¦°à¦®à¦¿à¦¶à¦¨ à¦¦à¦¿à¦¨ã€‚
                     <div style={{ fontSize: "10px", marginTop: "4px" }}>{hrState.error}</div>
                   </div>
                 )}
@@ -1842,12 +1402,12 @@ export default function Profile() {
             {/* Blood Pressure (estimated from HR + HRV) Modal */}
             {activeModal === "blood" && (
               <>
-                <div className="modal-title">🩸 রক্তচাপ অনুমান (Heart Rate + HRV ভিত্তিক)</div>
+                <div className="modal-title">ðŸ©¸ à¦°à¦•à§à¦¤à¦šà¦¾à¦ª à¦…à¦¨à§à¦®à¦¾à¦¨ (Heart Rate + HRV à¦­à¦¿à¦¤à§à¦¤à¦¿à¦•)</div>
                 <div className="measure-instructions">
-                  🩺 প্রথমে হার্টরেট পরিমাপ করুন। ফলাফল থেকে রক্তচাপ আনুমানিক হিসাব করা হবে。
+                  ðŸ©º à¦ªà§à¦°à¦¥à¦®à§‡ à¦¹à¦¾à¦°à§à¦Ÿà¦°à§‡à¦Ÿ à¦ªà¦°à¦¿à¦®à¦¾à¦ª à¦•à¦°à§à¦¨à¥¤ à¦«à¦²à¦¾à¦«à¦² à¦¥à§‡à¦•à§‡ à¦°à¦•à§à¦¤à¦šà¦¾à¦ª à¦†à¦¨à§à¦®à¦¾à¦¨à¦¿à¦• à¦¹à¦¿à¦¸à¦¾à¦¬ à¦•à¦°à¦¾ à¦¹à¦¬à§‡ã€‚
                   <br />
                   <em style={{ color: "var(--txt2)" }}>
-                    দ্রষ্টব্য: এটি কোনো মেডিকেল যন্ত্র নয়, শুধুমাত্র সাধারণ ধারণার জন্য。
+                    à¦¦à§à¦°à¦·à§à¦Ÿà¦¬à§à¦¯: à¦à¦Ÿà¦¿ à¦•à§‹à¦¨à§‹ à¦®à§‡à¦¡à¦¿à¦•à§‡à¦² à¦¯à¦¨à§à¦¤à§à¦° à¦¨à¦¯à¦¼, à¦¶à§à¦§à§à¦®à¦¾à¦¤à§à¦° à¦¸à¦¾à¦§à¦¾à¦°à¦£ à¦§à¦¾à¦°à¦£à¦¾à¦° à¦œà¦¨à§à¦¯ã€‚
                   </em>
                 </div>
 
@@ -1857,7 +1417,7 @@ export default function Profile() {
                     onClick={startBloodPressure}
                     disabled={bloodState.busy}
                   >
-                    {bloodState.busy ? "⏳ প্রসেসিং..." : "▶ পরিমাপ শুরু করুন"}
+                    {bloodState.busy ? "â³ à¦ªà§à¦°à¦¸à§‡à¦¸à¦¿à¦‚..." : "â–¶ à¦ªà¦°à¦¿à¦®à¦¾à¦ª à¦¶à§à¦°à§ à¦•à¦°à§à¦¨"}
                   </button>
                 )}
 
@@ -1866,39 +1426,40 @@ export default function Profile() {
                     <div className="bp-result-grid">
                       <div className="bp-stat">
                         <div className="bp-val">{bloodState.systolic}</div>
-                        <div className="bp-lbl">সিস্টোলিক (উপরের)</div>
+                        <div className="bp-lbl">à¦¸à¦¿à¦¸à§à¦Ÿà§‹à¦²à¦¿à¦• (à¦‰à¦ªà¦°à§‡à¦°)</div>
                       </div>
                       <div className="bp-divider">/</div>
                       <div className="bp-stat">
                         <div className="bp-val">{bloodState.diastolic}</div>
-                        <div className="bp-lbl">ডায়াস্টোলিক (নিচের)</div>
+                        <div className="bp-lbl">à¦¡à¦¾à¦¯à¦¼à¦¾à¦¸à§à¦Ÿà§‹à¦²à¦¿à¦• (à¦¨à¦¿à¦šà§‡à¦°)</div>
                       </div>
                     </div>
                     <div style={{ fontSize: "11px", color: "var(--txt2)", marginTop: "6px" }}>
-                      HR: {bloodState.hr} BPM · HRV: {bloodState.hrv} ms
+                      HR: {bloodState.hr} BPM Â· HRV: {bloodState.hrv} ms
                     </div>
                     <button
                       className="measure-start-btn"
                       onClick={startBloodPressure}
                       style={{ background: "var(--blue)", marginTop: "8px" }}
                     >
-                      🔁 আবার পরিমাপ করুন
+                      ðŸ” à¦†à¦¬à¦¾à¦° à¦ªà¦°à¦¿à¦®à¦¾à¦ª à¦•à¦°à§à¦¨
                     </button>
                   </div>
                 )}
 
                 {bloodState.status === "error" && (
                   <div className="measure-result" style={{ background: "#fee", color: "#c33" }}>
-                    ❌ পরিমাপ করা যায়নি। আবার চেষ্টা করুন。
+                    âŒ à¦ªà¦°à¦¿à¦®à¦¾à¦ª à¦•à¦°à¦¾ à¦¯à¦¾à¦¯à¦¼à¦¨à¦¿à¥¤ à¦†à¦¬à¦¾à¦° à¦šà§‡à¦·à§à¦Ÿà¦¾ à¦•à¦°à§à¦¨ã€‚
                   </div>
                 )}
               </>
             )}
 
-            <button className="modal-close-btn" onClick={closeModal}>বন্ধ করুন</button>
+            <button className="modal-close-btn" onClick={closeModal}>à¦¬à¦¨à§à¦§ à¦•à¦°à§à¦¨</button>
           </div>
         </div>
       )}
     </div>
   );
 }
+

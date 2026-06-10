@@ -1,7 +1,6 @@
 import React, { useState } from "react";
-import { db } from "../firebase/config";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { useAuth } from "../contexts/AuthContext";
+import { logSOS } from "../firebase/dbService";
 
 export default function Emergency() {
   const { currentUser } = useAuth();
@@ -21,13 +20,13 @@ export default function Emergency() {
       async (pos) => {
         const { latitude: lat, longitude: lng } = pos.coords;
         try {
-          await addDoc(collection(db, "sos"), {
-            userId: currentUser?.uid || "guest",
-            lat,
-            lng,
-            createdAt: serverTimestamp(),
-          });
-          setMessage("SOS সফলভাবে পাঠানো হয়েছে। নিকটস্থ সাহায্যকারীকে সতর্ক করা হচ্ছে।");
+          const result = await logSOS(currentUser?.uid, { lat, lng });
+          if (result?.ok) {
+            const suffix = result.source === "local" ? " (অফলাইনে সংরক্ষিত)" : "";
+            setMessage(`SOS সফলভাবে পাঠানো হয়েছে${suffix}। নিকটস্থ সাহায্যকারীকে সতর্ক করা হচ্ছে।`);
+          } else {
+            setMessage("SOS পাঠাতে ব্যর্থ হয়েছে।");
+          }
         } catch (err) {
           console.error(err);
           setMessage("SOS পাঠাতে ব্যর্থ হয়েছে।");
