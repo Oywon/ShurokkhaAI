@@ -226,7 +226,7 @@ export default function Login() {
                 style={{ width: "100%", height: "100%", borderRadius: "inherit", objectFit: "contain" }}
               />
             </div>
-            <div className="login-name">শুরক্ষা AI</div>
+            <div className="login-name">সুরক্ষা AI</div>
             <div className="login-sub">আপনার স্মার্ট স্বাস্থ্য সহকারী</div>
           </div>
         </div>

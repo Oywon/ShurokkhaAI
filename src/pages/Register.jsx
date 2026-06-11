@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { useToast } from "../contexts/ToastContext";
 import { saveUserProfile, errorMessage } from "../firebase/dbService";
 import { auth } from "../firebase/config";
 
@@ -36,6 +37,7 @@ export default function Register() {
   const bloodGroups = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
   const { signup, updateAuthProfile } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
 
   useEffect(() => {
     return () => {
@@ -130,7 +132,7 @@ export default function Register() {
         await saveUserProfile(user.uid, profile);
         await updateAuthProfile({ displayName: name });
       }
-      setSuccess("নিবন্ধন সফল হয়েছে। সূচিপত্রে নিয়ে যাওয়া হচ্ছে...");
+      toast.success("নিবন্ধন সফল হয়েছে। স্বাগতম!");
       navigate("/");
     } catch (err) {
       setError(errorMessage(err, err.message || "নিবন্ধন ব্যর্থ হয়েছে।"));
@@ -174,7 +176,7 @@ export default function Register() {
       if (uid) {
         await saveUserProfile(uid, profile);
       }
-      setSuccess("নিবন্ধন সফল হয়েছে। স্বাগতম!");
+      toast.success("নিবন্ধন সফল হয়েছে। স্বাগতম!");
       navigate("/");
     } catch (err) {
       setError(errorMessage(err, err.message || "নিবন্ধন ব্যর্থ হয়েছে।"));
@@ -195,7 +197,7 @@ export default function Register() {
                 style={{ width: "100%", height: "100%", borderRadius: "inherit", objectFit: "contain" }}
               />
             </div>
-            <div className="login-name">শুরক্ষা AI</div>
+            <div className="login-name">সুরক্ষা AI</div>
             <div className="login-sub">নিবন্ধনের মাধ্যমে শুরু করুন</div>
           </div>
         </div>

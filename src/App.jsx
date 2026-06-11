@@ -10,6 +10,7 @@ import Register from "./pages/Register";
 import DataEntry from "./pages/DataEntry";
 import Navbar from "./components/Navbar";
 import PWAInstallBanner from "./components/PWAInstallBanner";
+import NoticeBanner from "./components/NoticeBanner";
 import "./App.css";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ToastProvider } from "./contexts/ToastContext";
@@ -55,6 +56,18 @@ function App() {
       <ToastProvider>
         <Router>
           <div className="app-wrapper">
+            <NoticeBanner id="phone-otp-billing-v1">
+              <strong>ফোন OTP লগইন সাময়িকভাবে বন্ধ আছে।</strong>
+              <br />
+              Firebase phone authentication এর বিলিং সক্রিয় না থাকায় OTP পাঠানো
+              যাচ্ছে না। এই সময়ে ইমেইল ও পাসওয়ার্ড দিয়ে লগইন করুন অথবা
+              Google দিয়ে চালু করুন।
+              <br />
+              <span className="notice-banner__sub">
+                Phone OTP sign-in is temporarily unavailable due to Firebase
+                billing. Please use email/password or Google sign-in for now.
+              </span>
+            </NoticeBanner>
             <PhoneLayout />
           </div>
         </Router>

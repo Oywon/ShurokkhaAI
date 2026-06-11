@@ -34,6 +34,7 @@
   --r-md:         10px;
   --r-sm:         8px;
   --r-xs:         6px;
+  --control-h:    44px;
 }
 
 * {
@@ -47,29 +48,39 @@ html, body, #root {
   height: 100%;
   margin: 0;
   padding: 0;
+  overflow-x: hidden;        /* hard guard: never horizontal scroll
+                                on mobile, even if a child misbehaves */
 }
 
 body {
   background: var(--bg);
   font-family: var(--font-bn);
   color: var(--txt);
-  overflow: hidden;          /* prevent body scroll; only the message area scrolls */
+  overflow-x: hidden;         /* hard guard: never horizontal scroll on mobile */
   -webkit-text-size-adjust: 100%;
+  max-width: 100vw;           /* never wider than the viewport */
+  width: 100%;
 }
 
 /* Root fills the whole viewport — no centered card, no max-width. */
 .app-wrapper {
-  width: 100vw;
+  position: relative;
+  width: 100%;
+  max-width: 100vw;          /* never exceed the viewport width */
+  min-width: 0;              /* flex children must be allowed to shrink */
   height: 100dvh;            /* dynamic viewport for mobile/PWA */
   height: 100vh;             /* fallback */
   display: flex;
   flex-direction: column;
   background: var(--bg);
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .main-content {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   flex: 1 1 auto;
   min-height: 0;             /* let children shrink inside flex parent */
   display: flex;
@@ -77,6 +88,7 @@ body {
   background: var(--bg);
   position: relative;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 /* Every page rendered by <Routes> lands as the first child of .main-content.
@@ -907,11 +919,17 @@ body {
 .login-name {
   font-size: 20px;
   font-weight: 700;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: 100%;
 }
 .login-sub {
   font-size: 11px;
   opacity: 0.72;
   margin-top: 4px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: 100%;
 }
 
 .form-body {
@@ -923,6 +941,10 @@ body {
 .form-group {
   display: flex;
   flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 .flabel {
   font-size: 12px;
@@ -962,9 +984,17 @@ button.form-control {
 }
 .finput-wrap {
   position: relative;
+  display: block;               /* shrink-wrap inside form-group */
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 .finput {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
@@ -973,6 +1003,14 @@ button.form-control {
   color: var(--txt);
   font-family: var(--font-bn);
   outline: none;
+  display: block;               /* block-level so width:100% is honored */
+  text-overflow: ellipsis;       /* cut off long values, never overflow */
+  overflow: hidden;
+}
+/* When the input sits next to a +88 prefix, give the value more room
+   by trimming the left padding inside .finput-wrap. */
+.finput-wrap .finput {
+  padding-left: 40px;
 }
 .finput:focus {
   border-color: var(--green-mid);
@@ -999,13 +1037,20 @@ button.form-control {
 }
 .fi-left {
   position: absolute;
-  left: 12px;
+  left: 10px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 16px;
+  font-size: 13px;
   color: var(--txt3);
   display: flex;
   align-items: center;
+  pointer-events: none;          /* never block clicks on the input */
+  max-width: 36px;               /* never push the input out */
+  min-width: 0;
+  box-sizing: border-box;
+  font-family: var(--font-en);
+  font-weight: 600;
+  line-height: 1;
 }
 .fi-left svg {
   width: 16px;
@@ -1014,7 +1059,7 @@ button.form-control {
 }
 .fi-right {
   position: absolute;
-  right: 12px;
+  right: 10px;
   top: 50%;
   transform: translateY(-50%);
   font-size: 16px;
@@ -1022,6 +1067,9 @@ button.form-control {
   cursor: pointer;
   display: flex;
   align-items: center;
+  max-width: 32px;
+  min-width: 0;
+  box-sizing: border-box;
 }
 .fi-right svg {
   width: 16px;
@@ -1080,8 +1128,8 @@ button.form-control {
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
-  padding: 0 12px;
-  font-size: 13px;
+  padding: 0 8px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--txt2);
   cursor: pointer;
@@ -1093,6 +1141,13 @@ button.form-control {
   text-overflow: ellipsis;
   font-family: var(--font-bn);
   transition: transform 0.2s, background 0.2s, border-color 0.2s;
+}
+
+@media (max-width: 360px) {
+  .auth-tab {
+    font-size: 11px;
+    padding: 0 4px;
+  }
 }
 
 .auth-tab:hover {
@@ -1113,6 +1168,8 @@ button.form-control {
   flex: 1 1 auto;
   min-height: 0;
   height: 100%;
+  width: 100%;
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -1120,6 +1177,16 @@ button.form-control {
   background: var(--bg);
   overflow: hidden;
   -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+}
+
+/* Nuclear option: every descendant of .auth-page must be allowed to
+   shrink below its intrinsic content width. This is the only way to
+   defeat the flex/grid min-width:auto default that causes the form
+   to grow wider than the viewport on 320-480px screens. */
+.auth-page * {
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .auth-card {
@@ -1128,6 +1195,7 @@ button.form-control {
   align-self: stretch;
   flex: 1 1 auto;
   min-height: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   background: transparent;
@@ -1135,28 +1203,47 @@ button.form-control {
   border-radius: 0;
   box-shadow: none;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .auth-brand {
   flex: 0 0 auto;
+  width: 100%;
+  max-width: 100%;
+  align-self: stretch;
   padding: 28px 16px 12px;
   text-align: center;
+  box-sizing: border-box;
 }
 
 .auth-form-section {
   flex: 1 1 auto;
   min-height: 0;
+  min-width: 0;                 /* let this flex child shrink — without
+                                   this the form's intrinsic width can
+                                   push the card wider than the viewport */
+  width: 100%;                  /* explicit width: the section is exactly
+                                   as wide as its parent, not content-sized */
+  align-self: stretch;          /* stretch across the cross axis of .auth-page */
+  max-width: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   padding: 12px 0 16px;
+  overflow-x: hidden;           /* hard guard: never horizontal scroll
+                                   inside the auth form area */
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
 }
 
 .auth-actions {
   flex: 0 0 auto;
+  width: 100%;
+  max-width: 100%;
+  align-self: stretch;
   padding: 8px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
 }
 
 .auth-form {
@@ -1164,6 +1251,15 @@ button.form-control {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.auth-form > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .auth-divider {
@@ -1399,11 +1495,32 @@ button.form-control {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+  min-width: 0;                  /* let grid shrink inside flex parent */
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.frow-2 > * {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+/* On very narrow screens, stack the two password fields vertically so
+   each one gets the full width and the labels are not truncated. */
+@media (max-width: 380px) {
+  .frow-2 {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
 }
 .bg-chips-wrap {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
 }
 .bg-chip {
   border: 1px solid var(--border2);
@@ -1416,6 +1533,11 @@ button.form-control {
   font-weight: 600;
   background: var(--bg2);
   transition: all 0.2s;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  white-space: nowrap;           /* keep "AB+" intact, never wrap mid-label */
+  flex-shrink: 0;
 }
 .bg-chip.sel {
   background: var(--green-light);
@@ -1432,6 +1554,10 @@ button.form-control {
   align-items: flex-start;
   gap: 10px;
   cursor: pointer;
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
 }
 .checkbox-done {
   width: 18px;
@@ -1446,11 +1572,32 @@ button.form-control {
   margin-top: 1px;
   color: var(--green);
   font-size: 12px;
+  min-width: 0;
+  max-width: 18px;
+  box-sizing: border-box;
 }
 .checkbox-empty {
   width: 18px;
   height: 18px;
   border-radius: 4px;
+  border: 1.5px solid var(--border2);
+  background: var(--bg);
+  flex-shrink: 0;
+  margin-top: 1px;
+  min-width: 0;
+  max-width: 18px;
+  box-sizing: border-box;
+}
+.consent-text {
+  font-size: 9.5px;
+  color: var(--txt2);
+  line-height: 1.55;
+  min-width: 0;
+  max-width: 100%;
+  flex: 1 1 auto;
+  word-break: break-word;        /* never push parent wider than viewport */
+  overflow-wrap: anywhere;
+  box-sizing: border-boxx;
   border: 1.5px solid var(--border2);
   background: var(--bg);
   flex-shrink: 0;
@@ -2712,6 +2859,38 @@ body {
   .chat-input-row {
     padding: 8px 10px;
   }
+  /* Auth form on the smallest phones — trim padding so Email,
+     Phone, Password and Confirm Password all stay fully visible
+     on a 320px screen without horizontal scroll. */
+  .auth-form {
+    padding: 14px 12px 16px;
+    gap: 12px;
+  }
+  .auth-form-section {
+    padding: 8px 0 12px;
+  }
+  .auth-actions {
+    padding: 6px 12px calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+  .finput {
+    font-size: 10.5px;
+    padding: 9px 8px 9px 32px;
+  }
+}
+
+/* Slightly larger but still-narrow phones (360px – 480px).
+   Trim auth padding a bit so the form has breathing room
+   without forcing horizontal scroll. */
+@media (min-width: 360px) and (max-width: 480px) {
+  .auth-form {
+    padding: 16px 14px 18px;
+  }
+  .auth-form-section {
+    padding: 10px 0 14px;
+  }
+  .auth-actions {
+    padding: 6px 14px calc(18px + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 /* 8. Landscape phone: reduce vertical chrome so content is visible */
@@ -2853,6 +3032,83 @@ body {
   .pwa-install-sub { display: none; }
 }
 
+/* ── Global app notice banner (e.g. temp OTP outage) ──────────────
+   Slim amber bar pinned to the top of the viewport. Flex layout
+   keeps icon + body + close button on a single line on mobile;
+   on narrow viewports the text wraps gracefully. */
+.notice-banner {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  right: 14px;
+  z-index: 999;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: rgba(254, 243, 199, 0.94);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 12px;
+  color: #7c2d12;
+  font-size: 12px;
+  line-height: 1.45;
+  font-family: var(--font-bn);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  animation: notice-slide-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes notice-slide-in {
+  from {
+    transform: translateY(-12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.notice-banner__icon {
+  flex: 0 0 auto;
+  font-size: 16px;
+  line-height: 1.3;
+  margin-top: 1px;
+}
+.notice-banner__body {
+  flex: 1 1 auto;
+  min-width: 0;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+.notice-banner__sub {
+  display: block;
+  margin-top: 4px;
+  color: #9a3412;
+  font-size: 11px;
+  font-family: var(--font-en);
+  opacity: 0.9;
+}
+.notice-banner__close {
+  flex: 0 0 auto;
+  border: none;
+  background: transparent;
+  color: #9a3412;
+  font-size: 22px;
+  line-height: 1;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.notice-banner__close:hover { background: rgba(154, 52, 18, 0.1); }
+.notice-banner__close:active { transform: scale(0.92); }
+
 /* ── Desktop: mobile-app preview ──────────────────────────────────
    On screens ≥ 768px, present the PWA as a centered phone preview
    using realistic modern-phone proportions (~19.5:9). On actual
@@ -2950,4 +3206,5 @@ body {
   .auth-page {
     overflow: hidden;
   }
+
 }

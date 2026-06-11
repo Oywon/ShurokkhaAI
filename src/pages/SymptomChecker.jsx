@@ -289,7 +289,7 @@ export default function SymptomChecker() {
       <div className="chat-hdr">
         <div className="chat-avatar">🩺</div>
         <div>
-          <div className="chat-name">শুরক্ষা AI ডাক্তার</div>
+          <div className="chat-name">সুরক্ষা AI ডাক্তার</div>
           <div className="chat-online">● অনলাইন</div>
         </div>
         <button
@@ -340,7 +340,7 @@ export default function SymptomChecker() {
       <div className="chat-messages">
         {messages.map((m) => (
           <div key={m.id} style={{ alignSelf: m.sender === "user" ? "flex-end" : "flex-start" }}>
-            <div className="bubble-sender">{m.sender === "user" ? "আপনি" : "শুরক্ষা AI"}</div>
+            <div className="bubble-sender">{m.sender === "user" ? "আপনি" : "সুরক্ষা AI"}</div>
             <div className={`bubble ${m.sender === "ai" ? "ai" : "user"} ${m.warn ? "warn" : ""}`}>
               {m.text}
               {m.sender === "ai" && showChips && m.text.includes("আপনার কী সমস্যা") && (
@@ -386,7 +386,7 @@ export default function SymptomChecker() {
         ))}
         {loading && (
           <div style={{ alignSelf: "flex-start" }}>
-            <div className="bubble-sender">শুরক্ষা AI</div>
+            <div className="bubble-sender">সুরক্ষা AI</div>
             <div className="bubble ai">টাইপ করছে...</div>
           </div>
         )}
