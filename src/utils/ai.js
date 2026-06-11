@@ -1,32 +1,4 @@
-// Helper to safely get environment variables in both Vite and Create React App environments
-// SECURITY: The browser must never receive secret API keys. Only the public proxy URL
-// is read on the client. Any LLM provider key (OpenAI, Groq, Gemini) MUST live on the
-// Express proxy in /server — it is never sent to the browser.
-function getEnvVar(name) {
-  if (name === 'REACT_APP_AI_API_URL') {
-    return (typeof process !== 'undefined' && process.env && process.env.REACT_APP_AI_API_URL) ||
-           (import.meta.env && import.meta.env.VITE_AI_API_URL) || null;
-  }
-  if (name === 'REACT_APP_VISION_API_URL') {
-    return (typeof process !== 'undefined' && process.env && process.env.REACT_APP_VISION_API_URL) ||
-           (import.meta.env && import.meta.env.VITE_VISION_API_URL) || null;
-  }
-
-  const viteName = name.replace("REACT_APP_", "VITE_");
-  try {
-    if (import.meta.env && import.meta.env[viteName]) {
-      return import.meta.env[viteName];
-    }
-  } catch (e) {}
-
-  try {
-    if (typeof process !== "undefined" && process.env && process.env[name]) {
-      return process.env[name];
-    }
-  } catch (e) {}
-
-  return null;
-}
+import { getEnvVar } from './env';
 
 export async function analyzeSymptomsAPI(text) {
   // Use VITE_AI_API_URL or fallback to local proxy port 3001
@@ -44,6 +16,7 @@ export async function analyzeSymptomsAPI(text) {
       return data.answer || JSON.stringify(data);
     } catch (err) {
       console.error('AI analyze error:', err);
+      throw err;
     }
   }
 

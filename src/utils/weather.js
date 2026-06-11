@@ -1,24 +1,4 @@
-// Helper to safely get environment variables in both Vite and CRA
-function getEnvVar(name) {
-  // Static checks to allow Webpack and Vite static replacements
-  if (name === 'REACT_APP_AI_API_URL') {
-    return (typeof process !== 'undefined' && process.env && process.env.REACT_APP_AI_API_URL) ||
-           (import.meta.env && import.meta.env.VITE_AI_API_URL) || null;
-  }
-
-  const viteName = name.replace("REACT_APP_", "VITE_");
-  try {
-    if (import.meta.env && import.meta.env[viteName]) {
-      return import.meta.env[viteName];
-    }
-  } catch (e) {}
-  try {
-    if (typeof process !== "undefined" && process.env && process.env[name]) {
-      return process.env[name];
-    }
-  } catch (e) {}
-  return null;
-}
+import { getEnvVar } from './env';
 
 // Get current GPS coordinates, falling back to Dhaka if unavailable/denied.
 function getCurrentCoords() {

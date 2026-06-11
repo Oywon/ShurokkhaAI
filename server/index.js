@@ -17,7 +17,7 @@ const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 // SECURITY: explicit list of allowed origins for CORS. We intentionally do not
 // use `cors()` (which is wildcard) because the proxy holds LLM keys and
 // anyone could otherwise burn our quota.
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://127.0.0.1:3000,https://server-six-teal-95.vercel.app')
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173,https://server-six-teal-95.vercel.app,https://surokkhaai.web.app,https://surokkhaai.firebaseapp.com')
   .split(',')
   .map((s) => s.trim())
   .filter(Boolean);

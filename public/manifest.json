@@ -1,6 +1,6 @@
 {
-  "short_name": "Shurokkha AI",
-  "name": "Shurokkha AI - স্বাস্থ্য সহকারী",
+  "short_name": "Surokkha AI",
+  "name": "Surokkha AI - স্বাস্থ্য সহকারী",
   "description": "আপনার স্মার্ট স্বাস্থ্য সহকারী — লক্ষণ পরীক্ষা, ওষুধের তথ্য ও জরুরি সেবা",
   "lang": "bn",
   "dir": "ltr",
@@ -30,5 +30,9 @@
   "orientation": "portrait",
   "theme_color": "#10b981",
   "background_color": "#ffffff",
-  "categories": ["health", "medical", "lifestyle"]
+  "categories": [
+    "health",
+    "medical",
+    "lifestyle"
+  ]
 }
